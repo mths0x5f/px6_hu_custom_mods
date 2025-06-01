@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">AVIN</string>
+    <string name="clear_message">Toplam temiz %1$s süreç, %2$s hafıza.</string>
+    <string name="dvd">DVD</string>
+    <string name="loudoff">GÜRÜLTÜ: KAPALI</string>
+    <string name="loudon">GÜRÜLTÜ: AÇIK</string>
+    <string name="media">Video</string>
+    <string name="music">Müzik</string>
+    <string name="music_style0">EQ:Kullcı</string>
+    <string name="music_style1">EQ:Rock</string>
+    <string name="music_style2">EQ:Pop</string>
+    <string name="music_style3">EQ:Caz</string>
+    <string name="music_style4">EQ:Klasik</string>
+    <string name="music_style5">EQ:Düz Ses</string>
+    <string name="music_style6">EQ:Vokal</string>
+    <string name="muteoff">SESSİZ: KAPALI</string>
+    <string name="muteon">SESSİZ: AÇIK</string>
+    <string name="power_off">Kapat</string>
+    <string name="radio">Radyo</string>
+    <string name="shutdown_progress">Kapanıyor…</string>
+</resources>

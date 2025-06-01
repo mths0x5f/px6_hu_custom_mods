@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">Entrada AV</string>
+    <string name="clear_message">Espaço livre total %1$s processo memória de s %2$s</string>
+    <string name="dev">Dispositivo</string>
+    <string name="dvd">Dvd</string>
+    <string name="info">Informações</string>
+    <string name="loudoff">Baixos: Off</string>
+    <string name="loudon">Baixos: On</string>
+    <string name="media">Vídeos</string>
+    <string name="menu">Menu</string>
+    <string name="music">Músicas</string>
+    <string name="music_style0">Eq: Pessoal</string>
+    <string name="music_style1">Eq: Rock</string>
+    <string name="music_style2">Eq: Pop</string>
+    <string name="music_style3">Eq: Jazz</string>
+    <string name="music_style4">Eq: Clássica</string>
+    <string name="music_style5">Eq: Estável</string>
+    <string name="music_style6">Eq: Voz</string>
+    <string name="muteoff">Mute: Off</string>
+    <string name="muteon">Mute: On</string>
+    <string name="ok">Ok</string>
+    <string name="power_off">Desligar</string>
+    <string name="radio">Rádio</string>
+    <string name="shutdown_progress">Encerrando…</string>
+</resources>

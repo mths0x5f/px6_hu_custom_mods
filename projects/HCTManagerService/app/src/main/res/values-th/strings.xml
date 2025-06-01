@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">AVIN</string>
+    <string name="clear_message">กระบวนการทั้งหมด %1$s และหน่วยความจำ %2$s ถูกล้าง</string>
+    <string name="dvd">ดีวีดี</string>
+    <string name="loudoff">ดัง: ปิด</string>
+    <string name="loudon">ดัง: เปิด</string>
+    <string name="media">วิดีโอ</string>
+    <string name="music">เพลง</string>
+    <string name="music_style0">EQ: ผู้ใช้</string>
+    <string name="music_style1">EQ: ร็อค</string>
+    <string name="music_style2">EQ: เป็นที่นิยม</string>
+    <string name="music_style3">EQ: แจ๊ส</string>
+    <string name="music_style4">EQ: คลาสสิก</string>
+    <string name="music_style5">EQ: ตรง</string>
+    <string name="music_style6">EQ: เสียงร้อง</string>
+    <string name="muteoff">ปิดเสียง: ปิด</string>
+    <string name="muteon">ปิดเสียง: เปิด</string>
+    <string name="power_off">ปิดเครื่อง</string>
+    <string name="radio">วิทยุ</string>
+    <string name="shutdown_progress">กำลังปิด...</string>
+    <string name="tv">โทรทัศน์</string>
+</resources>

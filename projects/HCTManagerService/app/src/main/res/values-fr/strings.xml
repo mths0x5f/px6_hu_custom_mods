@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">AVIN</string>
+    <string name="clear_message">Procédé de clear total %1$s, mémoire de %2$s.</string>
+    <string name="dev">DEV</string>
+    <string name="dvd">DVD</string>
+    <string name="info">INFO</string>
+    <string name="loudoff">LOUD : OFF</string>
+    <string name="loudon">LOUD : ON</string>
+    <string name="media">vidéo</string>
+    <string name="menu">MENU</string>
+    <string name="music">Music</string>
+    <string name="music_style0">EQ:Personnalisé</string>
+    <string name="music_style1">EQ:Rock</string>
+    <string name="music_style2">EQ:Pop</string>
+    <string name="music_style3">EQ:Jazz</string>
+    <string name="music_style4">EQ:Classique</string>
+    <string name="music_style5">EQ:Plat</string>
+    <string name="music_style6">EQ:Voix</string>
+    <string name="muteoff">MUTE : OFF</string>
+    <string name="muteon">MUTE : ON</string>
+    <string name="ok">OK</string>
+    <string name="power_off">Éteindre</string>
+    <string name="radio">Radio</string>
+    <string name="shutdown_progress">Arrêt en cours...</string>
+</resources>

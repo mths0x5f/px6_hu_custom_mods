@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge android:gravity="center"
+    android:orientation="horizontal"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <ImageView
+        android:layout_gravity="center"
+        android:id="@id/toggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <SeekBar
+        android:layout_gravity="center"
+        android:id="@id/slider"
+        android:layout_width="240.0dip"
+        android:layout_height="fill_parent"
+        android:maxHeight="4.0px"
+        android:progressDrawable="@drawable/hzc25_seekbar"
+        android:minHeight="4.0px"
+        android:thumb="@drawable/hzc25_seek_bar_thumb"
+        android:layout_centerVertical="true"
+        android:paddingStart="20.0dip"
+        android:paddingEnd="20.0dip" />
+
+    <TextView
+        android:textAppearance="?android:textAppearanceMedium"
+        android:textSize="16.0sp"
+        android:textColor="@android:color/white"
+        android:layout_gravity="center"
+        android:id="@id/label"
+        android:layout_width="26.0dip"
+        android:layout_height="wrap_content" />
+</merge>

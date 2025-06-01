@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">AV-вход</string>
+    <string name="clear_message">Очищено %1$s процессов, %2$s памяти.</string>
+    <string name="dev">Устройство</string>
+    <string name="dvd">DVD</string>
+    <string name="info">Инфо</string>
+    <string name="loudoff">LOUD : OFF</string>
+    <string name="loudon">LOUD : ON</string>
+    <string name="media">Видео</string>
+    <string name="menu">Меню</string>
+    <string name="music">Музыка</string>
+    <string name="music_style0">Эквалайзер: Пользовательский</string>
+    <string name="music_style1">Эквалайзер: Рок</string>
+    <string name="music_style2">Эквалайзер: Поп</string>
+    <string name="music_style3">Эквалайзер: Джаз</string>
+    <string name="music_style4">Эквалайзер: Классик</string>
+    <string name="music_style5">Эквалайзер: Плоский</string>
+    <string name="music_style6">Эквалайзер: Вокал</string>
+    <string name="muteoff">Приглушение выкл.</string>
+    <string name="muteon">Приглушение</string>
+    <string name="ok">Принять</string>
+    <string name="power_off">Выключение</string>
+    <string name="radio">Радио</string>
+    <string name="shutdown_progress">Выключение...</string>
+    <string name="tv">Цифровое ТВ</string>
+</resources>

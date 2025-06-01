@@ -1,0 +1,42 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+android {
+    namespace 'android.microntek.service'
+    //noinspection GradleDependency
+    compileSdk 30
+
+    defaultConfig {
+        applicationId "android.microntek.service"
+        minSdk 30
+        //noinspection ExpiredTargetSdkVersion
+        targetSdk 30
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+}
+
+dependencies {
+
+    implementation libs.appcompat
+    implementation libs.material
+    testImplementation libs.junit
+
+    compileOnly libs.lombok
+    annotationProcessor libs.lombok
+    compileOnly fileTree(dir: 'libs', include: ['*.jar'])
+
+}

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">AV入力</string>
+    <string name="clear_message">トータルクリーンアップ·プロセス %1$s プロセス、 %2$s RAM。</string>
+    <string name="dev">デバイス</string>
+    <string name="dvd">DVD</string>
+    <string name="info">情報</string>
+    <string name="loudoff">音声：OFF</string>
+    <string name="loudon">音声：ON</string>
+    <string name="media">ビデオ</string>
+    <string name="menu">メニュー</string>
+    <string name="music">音楽</string>
+    <string name="music_style0">EQ:カスタム</string>
+    <string name="music_style1">EQ:ロック</string>
+    <string name="music_style2">EQ:ポップ</string>
+    <string name="music_style3">EQ:ジャズ</string>
+    <string name="music_style4">EQ:クラッシック</string>
+    <string name="music_style5">EQ:フラット</string>
+    <string name="music_style6">EQ:ヴォーカル</string>
+    <string name="muteoff">ミュート：OFF</string>
+    <string name="muteon">ミュート：ON</string>
+    <string name="ok">OK</string>
+    <string name="power_off">電源を切る</string>
+    <string name="radio">ラジオ</string>
+    <string name="shutdown_progress">シャットダウン中...</string>
+    <string name="tv">テレビ</string>
+</resources>

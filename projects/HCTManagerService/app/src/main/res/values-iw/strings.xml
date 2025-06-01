@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="power_off">כיבוי</string>
+    <string name="shutdown_progress">מכבה...</string>
+    <string name="vedio_warning">"לבטיחותך לא ניתן להפעיל תוך כדי נסיעה 
+לשימוש בישומון נא החנה/י את רכבך
+העבר/י להילוך חניה והפעל/י בלם יד"</string>
+</resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="muteoff">Dempen : Aan</string>
+    <string name="muteon">Dempen : Uit</string>
+    <string name="power_off">Uitschakelen</string>
+    <string name="shutdown_progress">Uitschakelen...</string>
+</resources>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">AVIN</string>
+    <string name="clear_message">مجموع عملية واضحة %1$s، %2$s من الذاكرة.</string>
+    <string name="dvd">DVD</string>
+    <string name="loudoff">LOUD : OFF</string>
+    <string name="loudon">LOUD : ON</string>
+    <string name="media">فيديو</string>
+    <string name="music">موسيقى</string>
+    <string name="music_style0">EQ: مخصص</string>
+    <string name="music_style1">EQ: الصخرة</string>
+    <string name="music_style2">EQ: البوب</string>
+    <string name="music_style3">EQ: جاز</string>
+    <string name="music_style4">EQ: كلاسيك</string>
+    <string name="music_style5">EQ: شقة</string>
+    <string name="music_style6">EQ: صوت</string>
+    <string name="muteoff">كتم: OFF</string>
+    <string name="muteon">كتم: ON</string>
+    <string name="power_off">إيقاف التشغيل</string>
+    <string name="radio">راديو</string>
+    <string name="shutdown_progress">جارٍ إيقاف التشغيل...</string>
+    <string name="tv">تلفزيون</string>
+</resources>

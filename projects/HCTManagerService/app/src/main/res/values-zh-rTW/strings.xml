@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">AVIN</string>
+    <string name="clear_message">總共清理 %1$s 個進程, %2$s 記憶體。</string>
+    <string name="dvd">DVD</string>
+    <string name="loudoff">LOUD : 關</string>
+    <string name="loudon">LOUD : 開</string>
+    <string name="media">視頻</string>
+    <string name="music">音樂</string>
+    <string name="music_style0">EQ : 用戶</string>
+    <string name="music_style1">EQ : 搖滾</string>
+    <string name="music_style2">EQ : 流行</string>
+    <string name="music_style3">EQ : 爵士</string>
+    <string name="music_style4">EQ : 經典</string>
+    <string name="music_style5">EQ : 平直</string>
+    <string name="music_style6">EQ : 人聲</string>
+    <string name="muteoff">靜音 : 關</string>
+    <string name="muteon">靜音 : 開</string>
+    <string name="power_off">關機</string>
+    <string name="radio">收音機</string>
+    <string name="shutdown_progress">關機中…</string>
+    <string name="tv">電視</string>
+</resources>

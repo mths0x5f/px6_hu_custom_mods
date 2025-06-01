@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">[ÅνÎÑ one]</string>
+    <string name="btmusic">[βŢḾûšîç one two]</string>
+    <string name="c_dan">[℃ one]</string>
+    <string name="clear_message">[Ţöţåļ çļéåŕ »%1$s« þŕöçéšš, »%2$s« ḿéḿöŕý. one two three four]</string>
+    <string name="dev">[ÐÉν one]</string>
+    <string name="dvd">[ÐνÐ one]</string>
+    <string name="f_dan">[F one]</string>
+    <string name="heatover">[ÖVéŕĥéåţîñĝ åļåŕḿ ¡ one two three]</string>
+    <string name="info">[ÎÑFÖ one]</string>
+    <string name="ipod">[Îþöð one]</string>
+    <string name="loudoff">[ĻÖÛÐ : ÖFF one two]</string>
+    <string name="loudon">[ĻÖÛÐ : ÖÑ one two]</string>
+    <string name="media">[νîðéö one]</string>
+    <string name="menu">[ḾÉÑÛ one]</string>
+    <string name="music">[Ḿûšîç one]</string>
+    <string name="music_style0">[Éq : Çûšţöḿ one two]</string>
+    <string name="music_style1">[Éq : Ŕöçķ one two]</string>
+    <string name="music_style2">[Éq : Þöþ one two]</string>
+    <string name="music_style3">[Éq : Ĵåžž one two]</string>
+    <string name="music_style4">[Éq : Çļåššîç one two]</string>
+    <string name="music_style5">[Éq : Fļåţ one two]</string>
+    <string name="music_style6">[Éq : νöîçé one two]</string>
+    <string name="muteoff">[ḾÛŢÉ : ÖFF one two]</string>
+    <string name="muteon">[ḾÛŢÉ : ÖÑ one two]</string>
+    <string name="naviset">[ÑåVîŠéţţîñĝš one two]</string>
+    <string name="ok">[ÖĶ one]</string>
+    <string name="power_off">[Þöŵéŕ öƒƒ one two]</string>
+    <string name="radio">[Ŕåðîö one]</string>
+    <string name="shutdown_progress">[Šĥûţţîñĝ ðöŵñ… one two three]</string>
+    <string name="tv">[Ţν one]</string>
+    <string name="update_error">[Ðö ñöţ ûšé. Îļļéĝåļ šöƒţŵåŕé ¡¡¡ one two three four]</string>
+    <string name="vedio_warning">[νîðéö ðîšåɓļéð ŵĥîļé ðŕîVîñĝ ƒöŕ šåƒéţý ¡ one two three four five]</string>
+</resources>

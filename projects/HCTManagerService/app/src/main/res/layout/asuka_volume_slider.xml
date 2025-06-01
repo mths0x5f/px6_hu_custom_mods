@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge android:gravity="center"
+    android:orientation="horizontal"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:microntek="http://schemas.android.com/apk/res-auto">
+
+    <ImageView
+        android:layout_gravity="center"
+        android:id="@+id/toggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <android.microntek.app.MyButton
+        android:layout_gravity="center"
+        android:id="@+id/btn_down_vol"
+        android:layout_width="45.0dip"
+        android:layout_height="45.0dip"
+        microntek:imgHeight="20.0dip"
+        microntek:imgSrc="@drawable/btn_down_vol"
+        microntek:imgWidth="20.0dip" />
+
+    <SeekBar
+        android:layout_gravity="center"
+        android:id="@+id/slider"
+        android:layout_width="210.0dip"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:paddingStart="10.0dip"
+        android:paddingEnd="10.0dip" />
+
+    <android.microntek.app.MyButton
+        android:layout_gravity="center"
+        android:id="@+id/btn_up_vol"
+        android:layout_width="45.0dip"
+        android:layout_height="45.0dip"
+        microntek:imgHeight="20.0dip"
+        microntek:imgSrc="@drawable/btn_up_vol"
+        microntek:imgWidth="20.0dip" />
+
+    <TextView
+        android:textAppearance="?android:textAppearanceMedium"
+        android:textSize="18.0sp"
+        android:textColor="#ffc7c7c7"
+        android:gravity="center"
+        android:layout_gravity="center"
+        android:id="@+id/label"
+        android:layout_width="26.0dip"
+        android:layout_height="wrap_content" />
+</merge>

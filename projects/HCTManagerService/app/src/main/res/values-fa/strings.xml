@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">ورودی ای وی</string>
+    <string name="c_dan">درجه سانتی گراد</string>
+    <string name="clear_message">Total clear %1$s process, %2$s memory.</string>
+    <string name="dev">DEV</string>
+    <string name="dvd">دی وی دی</string>
+    <string name="f_dan">فارنهایت</string>
+    <string name="heatover">دما خیلی زیاد است</string>
+    <string name="info">اطلاعات</string>
+    <string name="ipod">آی پاد</string>
+    <string name="loudoff">صدای بلند : خاموش</string>
+    <string name="loudon">صدای بلند : روشن</string>
+    <string name="media">فیلم</string>
+    <string name="menu">فهرست</string>
+    <string name="music">موزیک</string>
+    <string name="music_style0">EQ : Custom</string>
+    <string name="music_style1">EQ : Rock</string>
+    <string name="music_style2">EQ : Pop</string>
+    <string name="music_style3">EQ : Jazz</string>
+    <string name="music_style4">EQ : Classic</string>
+    <string name="music_style5">EQ : Flat</string>
+    <string name="music_style6">EQ : Voice</string>
+    <string name="muteoff">قطع صدا : خاموش</string>
+    <string name="muteon">قطع صدا : روشن</string>
+    <string name="ok">تایید</string>
+    <string name="power_off">خاموش کردن</string>
+    <string name="radio">رادیو</string>
+    <string name="shutdown_progress">در حال خاموش شدن…</string>
+    <string name="tv">تلویزیون</string>
+</resources>

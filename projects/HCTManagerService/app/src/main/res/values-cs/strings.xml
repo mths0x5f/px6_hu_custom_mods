@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">AVIN</string>
+    <string name="c_dan">℃</string>
+    <string name="clear_message">Celkem čisté %1$s proces, %2$s paměť.</string>
+    <string name="dev">DEV</string>
+    <string name="dvd">DVD</string>
+    <string name="f_dan">F</string>
+    <string name="info">INFO</string>
+    <string name="ipod">Ipod</string>
+    <string name="loudoff">LOUD : Vypnuto</string>
+    <string name="loudon">LOUD : Zapnuto</string>
+    <string name="media">Video</string>
+    <string name="menu">MENU</string>
+    <string name="music">Hudba</string>
+    <string name="music_style0">EQ : Custom</string>
+    <string name="music_style1">EQ : Rock</string>
+    <string name="music_style2">EQ : Pop</string>
+    <string name="music_style3">EQ : Jazz</string>
+    <string name="music_style4">EQ : Classic</string>
+    <string name="music_style5">EQ : Flat</string>
+    <string name="music_style6">EQ : Voice</string>
+    <string name="muteoff">MUTE : Vypnuto</string>
+    <string name="muteon">MUTE : Zapnuto</string>
+    <string name="ok">OK</string>
+    <string name="power_off">Vypnout</string>
+    <string name="radio">Rádio</string>
+    <string name="shutdown_progress">Vypínání...</string>
+</resources>

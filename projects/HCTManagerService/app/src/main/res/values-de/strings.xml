@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="avin">AVIN</string>
+    <string name="clear_message">%1$s Prozesse beendet, %2$s freigegeben.</string>
+    <string name="dev">DEV</string>
+    <string name="dvd">DVD</string>
+    <string name="info">INFO</string>
+    <string name="loudoff">LOUD : Aus</string>
+    <string name="loudon">LOUD : Ein</string>
+    <string name="media">Video</string>
+    <string name="menu">MENU</string>
+    <string name="music">Musik</string>
+    <string name="music_style0">EQ : Benutzer</string>
+    <string name="music_style1">EQ : Rock</string>
+    <string name="music_style2">EQ : Pop</string>
+    <string name="music_style3">EQ : Jazz</string>
+    <string name="music_style4">EQ : Klassik</string>
+    <string name="music_style5">EQ : Wohnung</string>
+    <string name="music_style6">EQ : Gesang</string>
+    <string name="muteoff">MUTE : Aus</string>
+    <string name="muteon">MUTE : Ein</string>
+    <string name="ok">OK</string>
+    <string name="power_off">Ausschalten</string>
+    <string name="radio">Radio</string>
+    <string name="shutdown_progress">Wird heruntergefahren...</string>
+    <string name="tv">Fernseher</string>
+</resources>
