@@ -1,5 +1,7 @@
 package android.microntek.service;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -13,7 +15,6 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.microntek.CarManager;
 import android.net.ConnectivityManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -21,187 +22,194 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
 import android.os.SystemProperties;
+import android.os.UserHandle;
 import android.provider.Settings;
-import android.widget.Toast;
+import android.util.Log;
+
 import java.util.Calendar;
 import java.util.Date;
 
+/**
+ * MicrontekTimeUpdateServer is a service that updates the system time based on GPS data.
+ * It listens for location updates and adjusts the system time accordingly.
+ * It also manages GPS state based on car power states and user settings.
+ */
 public class MicrontekTimeUpdateServer extends Service {
+
+    private static final String TAG = "MicrontekTimeUpdateServer";
+
     private static final String MODE_CHANGING_ACTION = "com.android.settings.location.MODE_CHANGING";
     private static final String NEW_MODE_KEY = "NEW_MODE";
+
     public static final int POWER_STA_ACC_OFF = 0;
     public static final int POWER_STA_INVALID = -1;
     public static final int POWER_STA_OFF = 1;
     public static final int POWER_STA_ON = 2;
-    private static Context mContext;
-    private boolean videoSpeedChanged;
+
+    private static final int SETUP_LOCATION_UPDATES = 0;
+    private static final String GPSUPDATETIME_SETTING = "gpsupdatetime";
+
+    public static final String ACTION_GPSAUTOUPDATE = "com.microntek.gpsautoupdate";
+    public static final String ACTION_FRESHTIME = "com.microntek.freshtime";
+
     private boolean videoSpeedEnable;
+    private boolean videoSpeedChanged;
     private static int timeUpdateCounter = 0;
-    private static int mPowerState = 0;
-    private LocationManager locationManager = null;
+    private static int currentPowerState = POWER_STA_ACC_OFF;
+    private LocationManager locationManager;
     private boolean isFirstFix = true;
-    protected CarManager mCarManager = null;
-    private Toast mToast = null;
-    private final Handler mHandler = new Handler(Looper.myLooper()) {
+    private CarManager carManager;
+
+    private final Handler gnssHandler = new Handler(Looper.myLooper());
+    private final Handler handler = new Handler(Looper.myLooper()) {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            if (msg.what == 0 && MicrontekTimeUpdateServer.this.locationManager == null) {
-                MicrontekTimeUpdateServer.this.InitLoc();
+            if (msg.what == SETUP_LOCATION_UPDATES && locationManager == null) {
+                setupLocationUpdates();
             }
         }
     };
+
     private final LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
-            MicrontekTimeUpdateServer.this.updateLocation(location);
+            updateLocation(location);
         }
 
         @Override
-        public void onProviderDisabled(String arg0) {
-            MicrontekTimeUpdateServer.this.updateLocation(null);
+        public void onProviderDisabled(String provider) {
+            updateLocation(null);
         }
 
         @Override
-        public void onProviderEnabled(String arg0) {
-            MicrontekTimeUpdateServer.this.mHandler.removeMessages(0);
-            MicrontekTimeUpdateServer.this.mHandler.sendEmptyMessageDelayed(0, 3000L);
-        }
-
-        @Override
-        public void onStatusChanged(String arg0, int arg1, Bundle arg2) {
+        public void onProviderEnabled(String provider) {
+            handler.removeMessages(SETUP_LOCATION_UPDATES);
+            handler.sendEmptyMessageDelayed(SETUP_LOCATION_UPDATES, 3000L);
         }
     };
-    private int mSatelliteCount = 0;
-    private final GnssStatus.Callback gnssStatusCallBack = new GnssStatus.Callback() { // from class: android.microntek.service.MicrontekTimeUpdateServer.3
-        @Override // android.location.GnssStatus.Callback
+
+    private int prevSatelliteCount = 0;
+    private final GnssStatus.Callback gnssStatusCallBack = new GnssStatus.Callback() {
+        @Override
         public void onSatelliteStatusChanged(GnssStatus status) {
             int satelliteCount = status.getSatelliteCount();
-            if (satelliteCount > 0 && Math.abs(MicrontekTimeUpdateServer.this.mSatelliteCount - satelliteCount) > 2) {
-                int unused = MicrontekTimeUpdateServer.timeUpdateCounter = 8;
-                MicrontekTimeUpdateServer.this.mSatelliteCount = satelliteCount;
+            if (satelliteCount > 0 && Math.abs(prevSatelliteCount - satelliteCount) > 2) {
+                timeUpdateCounter = 8;
+                prevSatelliteCount = satelliteCount;
             }
         }
     };
-    private final ContentObserver gpsAutoContentObserver = new ContentObserver(new Handler(Looper.myLooper())) { // from class: android.microntek.service.MicrontekTimeUpdateServer.4
+
+    private final ContentObserver gpsAutoContentObserver = new ContentObserver(new Handler(Looper.myLooper())) {
         @Override
         public void onChange(boolean selfChange) {
             super.onChange(selfChange);
-            int gpsUpdateTime = Settings.System.getInt(MicrontekTimeUpdateServer.mContext.getContentResolver(), "gpsupdatetime", 0);
-            if (gpsUpdateTime == 1) {
-                if (MicrontekTimeUpdateServer.this.locationManager == null) {
-                    MicrontekTimeUpdateServer.this.isFirstFix = true;
-                    MicrontekTimeUpdateServer.this.InitLoc();
+            if (shouldGpsUpdateTime()) {
+                if (locationManager == null) {
+                    isFirstFix = true;
+                    setupLocationUpdates();
                 }
-            } else if (MicrontekTimeUpdateServer.this.locationManager != null) {
-                MicrontekTimeUpdateServer.this.locationManager.unregisterGnssStatusCallback(MicrontekTimeUpdateServer.this.gnssStatusCallBack);
-                MicrontekTimeUpdateServer.this.locationManager.removeUpdates(MicrontekTimeUpdateServer.this.locationListener);
-                MicrontekTimeUpdateServer.this.locationManager = null;
+            } else if (locationManager != null) {
+                unregisterLocationUpdates();
             }
         }
     };
-    private final BroadcastReceiver updateTime = new BroadcastReceiver() { // from class: android.microntek.service.MicrontekTimeUpdateServer.6
+
+    private final BroadcastReceiver updateTime = new BroadcastReceiver() {
         @Override
-        public void onReceive(Context arg0, Intent arg1) {
-            String action = arg1.getAction();
-            if (action.equals("com.microntek.gpsautoupdate")) {
-                boolean en = arg1.getBooleanExtra("en", false);
-                if (en || MicrontekTimeUpdateServer.this.videoSpeedEnable) {
-                    if (MicrontekTimeUpdateServer.this.locationManager == null) {
-                        MicrontekTimeUpdateServer.this.isFirstFix = true;
-                        MicrontekTimeUpdateServer.this.InitLoc();
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (action.equals(ACTION_GPSAUTOUPDATE)) {
+                boolean en = intent.getBooleanExtra("en", false);
+                if (en || videoSpeedEnable) {
+                    if (locationManager == null) {
+                        isFirstFix = true;
+                        setupLocationUpdates();
                     }
-                } else if (MicrontekTimeUpdateServer.this.locationManager != null && !MicrontekTimeUpdateServer.this.videoSpeedEnable) {
-                    MicrontekTimeUpdateServer.this.locationManager.unregisterGnssStatusCallback(MicrontekTimeUpdateServer.this.gnssStatusCallBack);
-                    MicrontekTimeUpdateServer.this.locationManager.removeUpdates(MicrontekTimeUpdateServer.this.locationListener);
-                    MicrontekTimeUpdateServer.this.locationManager = null;
+                } else if (locationManager != null) {
+                    unregisterLocationUpdates();
                 }
-            } else if (action.equals("com.microntek.freshtime")) {
-                arg0.sendBroadcast(new Intent("android.intent.action.TIME_SET"));
+            } else if (action.equals(ACTION_FRESHTIME)) {
+                context.sendBroadcast(new Intent(Intent.ACTION_TIME_CHANGED));
             }
         }
     };
 
     private void updateLocation(Location location) {
-        LocationManager locationManager;
-        int gpsupdatetime = Settings.System.getInt(getContentResolver(), "gpsupdatetime", 0);
         if (location != null) {
-            if (this.videoSpeedEnable) {
-                float speed = location.getSpeed() * 3.6f;
-                int videoSpeed = Settings.System.getInt(mContext.getContentResolver(), "DrivingVideoOverSpeed", 0);
+            if (videoSpeedEnable) {
+                final float speed = location.getSpeed() * 3.6f;
+                int videoSpeed = Settings.System.getInt(getContentResolver(), "DrivingVideoOverSpeed", 0);
                 if (videoSpeed > 0 && speed > videoSpeed) {
-                    if (!this.videoSpeedChanged) {
-                        this.videoSpeedChanged = true;
-                        this.mCarManager.setVideoOverSpeed(true);
+                    if (!videoSpeedChanged) {
+                        videoSpeedChanged = true;
+                        carManager.setVideoOverSpeed(true);
                     }
-                } else if (this.videoSpeedChanged) {
-                    this.videoSpeedChanged = false;
-                    this.mCarManager.setVideoOverSpeed(false);
+                } else if (videoSpeedChanged) {
+                    videoSpeedChanged = false;
+                    carManager.setVideoOverSpeed(false);
                 }
             }
-            int i = timeUpdateCounter;
-            if (i > 0) {
-                int i2 = i - 1;
-                timeUpdateCounter = i2;
-                if (i2 == 0) {
-                    long gpsTime = location.getTime();
-                    if (gpsupdatetime == 1) {
+            if (timeUpdateCounter > 0) {
+                timeUpdateCounter = timeUpdateCounter - 1;
+                if (timeUpdateCounter == 0) {
+                    final long gpsTime = location.getTime();
+                    if (shouldGpsUpdateTime()) {
                         Date date = new Date(gpsTime);
+                        Log.i(TAG, "GPS Time: " + date + ", millis: " + gpsTime);
                         SystemClock.setCurrentTimeMillis(gpsTime);
                         Calendar.getInstance().setTime(date);
-                        mContext.sendBroadcast(new Intent("android.intent.action.TIME_SET"));
-                        if (this.isFirstFix && (locationManager = this.locationManager) != null) {
-                            locationManager.unregisterGnssStatusCallback(this.gnssStatusCallBack);
-                            this.locationManager.removeUpdates(this.locationListener);
-                            this.locationManager = null;
-                            this.mHandler.removeMessages(0);
-                            this.mHandler.sendEmptyMessageDelayed(0, 20L);
-                            this.isFirstFix = false;
-                            return;
+                        getBaseContext().sendBroadcast(new Intent(Intent.ACTION_TIME_CHANGED));
+                        if (this.isFirstFix && locationManager != null) {
+                            unregisterLocationUpdates();
+                            handler.removeMessages(SETUP_LOCATION_UPDATES);
+                            handler.sendEmptyMessageDelayed(SETUP_LOCATION_UPDATES, 20L);
+                            isFirstFix = false;
                         }
-                        return;
                     }
-                    return;
                 }
-                return;
             }
-            return;
+        } else {
+            timeUpdateCounter = 8;
         }
-        timeUpdateCounter = 8;
     }
 
-    private boolean isGpsOn() {
-        int mode = Settings.Secure.getInt(getContentResolver(), "location_mode", 0);
-        return mode == 3;
+    private boolean isGpsActivated() {
+        return Settings.Secure.getInt(getContentResolver(), Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_OFF) == Settings.Secure.LOCATION_MODE_ON;
     }
 
-    private void openGps() {
+    private void activateGps() {
         Intent intent = new Intent(MODE_CHANGING_ACTION);
-        intent.putExtra(NEW_MODE_KEY, 3);
-        sendBroadcast(intent, "android.permission.WRITE_SECURE_SETTINGS");
-        Settings.Secure.putInt(getContentResolver(), "location_mode", 3);
+        intent.putExtra(NEW_MODE_KEY, Settings.Secure.LOCATION_MODE_ON);
+        sendBroadcast(intent, Manifest.permission.WRITE_SECURE_SETTINGS);
+        Settings.Secure.putInt(getContentResolver(), Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_ON);
     }
 
-    private void closeGps() {
+    private void deactivateGps() {
         Intent intent = new Intent(MODE_CHANGING_ACTION);
-        intent.putExtra(NEW_MODE_KEY, 0);
-        sendBroadcast(intent, "android.permission.WRITE_SECURE_SETTINGS");
-        Settings.Secure.putInt(getContentResolver(), "location_mode", 0);
+        intent.putExtra(NEW_MODE_KEY, Settings.Secure.LOCATION_MODE_OFF);
+        sendBroadcast(intent, Manifest.permission.WRITE_SECURE_SETTINGS);
+        Settings.Secure.putInt(getContentResolver(), Settings.Secure.LOCATION_MODE, Settings.Secure.LOCATION_MODE_OFF);
     }
 
-    @Override // android.app.Service
+    private boolean shouldGpsUpdateTime() {
+        return Settings.System.getInt(getContentResolver(), GPSUPDATETIME_SETTING, 0) == 1;
+    }
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
+    @Override
     public void onCreate() {
         super.onCreate();
-        mContext = this;
-        this.mCarManager = new CarManager();
-        this.videoSpeedEnable = SystemProperties.get("ro.product.drivingoverspeed", "false").equals("true");
-        if (!isGpsOn()) {
-            openGps();
-            this.mHandler.sendEmptyMessageDelayed(0, 3000L);
+        carManager = new CarManager();
+        videoSpeedEnable = SystemProperties.get("ro.product.drivingoverspeed", "false").equals("true");
+        if (!isGpsActivated()) {
+            activateGps();
+            handler.sendEmptyMessageDelayed(SETUP_LOCATION_UPDATES, 3000L);
         } else {
-            InitLoc();
+            setupLocationUpdates();
         }
-        this.mCarManager.attach(new Handler(Looper.myLooper()) {
+        carManager.attach(new Handler(Looper.myLooper()) {
             @Override
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
@@ -209,127 +217,128 @@ public class MicrontekTimeUpdateServer extends Service {
                 Bundle bundle = msg.getData();
                 if (type.equals("CarPower")) {
                     String state = bundle.getString("type");
-                    MicrontekTimeUpdateServer.this.DoCarPower(state);
+                    handleCarPowerState(state);
                 }
             }
         }, "CarPower");
-        String powerstate = this.mCarManager.getStringState("carpower");
-        DoCarPower(powerstate);
-        getContentResolver().registerContentObserver(Settings.System.getUriFor("gpsupdatetime"), true, this.gpsAutoContentObserver, -1);
-        IntentFilter itfl = new IntentFilter();
-        itfl.addAction("com.microntek.gpsautoupdate");
-        itfl.addAction("com.microntek.freshtime");
-        registerReceiver(this.updateTime, itfl);
+
+        String powerState = carManager.getStringState("carpower");
+        handleCarPowerState(powerState);
+
+        getContentResolver()
+                .registerContentObserver(Settings.System.getUriFor(GPSUPDATETIME_SETTING),
+                        true, gpsAutoContentObserver, UserHandle.USER_ALL);
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ACTION_GPSAUTOUPDATE);
+        filter.addAction(ACTION_FRESHTIME);
+        registerReceiver(updateTime, filter);
     }
 
     private void setAirplaneModeOn(boolean enabled) {
-        if (SystemProperties.get("ro.board.platform", "rkXXXX").startsWith("rk") && SystemProperties.get("ro.momdem.chip", "false").equals("false")) {
+        if (SystemProperties.get("ro.board.platform", "rkXXXX").startsWith("rk")) {
             return;
         }
-        ConnectivityManager mgr = (ConnectivityManager) getSystemService("connectivity");
-        mgr.setAirplaneMode(enabled);
+        final var connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        connectivityManager.setAirplaneMode(enabled);
     }
 
-    private void DoCarPower(String state) {
+    private void handleCarPowerState(String state) {
         if (state == null) {
             return;
         }
-        if (state.equals("sleep")) {
-            this.mHandler.removeMessages(0);
-            LocationManager locationManager = this.locationManager;
-            if (locationManager != null) {
-                locationManager.unregisterGnssStatusCallback(this.gnssStatusCallBack);
-                this.locationManager.removeUpdates(this.locationListener);
-                this.locationManager = null;
+        switch (state) {
+            case "sleep" -> {
+                handler.removeMessages(SETUP_LOCATION_UPDATES);
+                if (locationManager != null) {
+                    unregisterLocationUpdates();
+                }
+                if (isGpsActivated()) {
+                    deactivateGps();
+                }
+                setAirplaneModeOn(true);
+                currentPowerState = POWER_STA_INVALID;
             }
-            if (isGpsOn()) {
-                closeGps();
+            case "power_on" -> {
+                if (POWER_STA_OFF != currentPowerState) {
+                    setAirplaneModeOn(false);
+                }
+                currentPowerState = POWER_STA_ON;
+                if (!isGpsActivated()) {
+                    activateGps();
+                }
+                handler.removeMessages(SETUP_LOCATION_UPDATES);
+                handler.sendEmptyMessageDelayed(SETUP_LOCATION_UPDATES, 3000L);
             }
-            setAirplaneModeOn(true);
-            mPowerState = -1;
-        } else if (state.equals("power_on")) {
-            if (1 != mPowerState) {
-                setAirplaneModeOn(false);
+            case "power_off" -> {
+                if (POWER_STA_INVALID == currentPowerState) {
+                    setAirplaneModeOn(false);
+                }
+                currentPowerState = POWER_STA_OFF;
             }
-            mPowerState = 2;
-            if (!isGpsOn()) {
-                openGps();
-            }
-            this.mHandler.removeMessages(0);
-            this.mHandler.sendEmptyMessageDelayed(0, 3000L);
-        } else if (state.equals("power_off")) {
-            if (-1 == mPowerState) {
-                setAirplaneModeOn(false);
-            }
-            mPowerState = 1;
-        } else if (state.equals("acc_off")) {
-            mPowerState = 0;
-            this.mHandler.removeMessages(0);
-            LocationManager locationManager2 = this.locationManager;
-            if (locationManager2 != null) {
-                locationManager2.unregisterGnssStatusCallback(this.gnssStatusCallBack);
-                this.locationManager.removeUpdates(this.locationListener);
-                this.locationManager = null;
-            }
-            if (isGpsOn()) {
-                closeGps();
+            case "acc_off" -> {
+                currentPowerState = POWER_STA_ACC_OFF;
+                handler.removeMessages(SETUP_LOCATION_UPDATES);
+                if (locationManager != null) {
+                    unregisterLocationUpdates();
+                }
+                if (isGpsActivated()) {
+                    deactivateGps();
+                }
             }
         }
     }
 
-    private void InitLoc() {
-        boolean en = Settings.Secure.isLocationProviderEnabled(getContentResolver(), "gps");
-        if (!en) {
-            Settings.Secure.setLocationProviderEnabled(getContentResolver(), "gps", true);
+    private void setupLocationUpdates() {
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            locationManager.setLocationEnabledForUser(true, UserHandle.CURRENT_OR_SELF);
         }
-        int gpsupdatetime = Settings.System.getInt(getContentResolver(), "gpsupdatetime", 0);
-        if (gpsupdatetime == 1) {
+        if (shouldGpsUpdateTime()) {
             try {
-                LocationManager locationManager = (LocationManager) getSystemService("location");
-                this.locationManager = locationManager;
                 String bestProvider = locationManager.getBestProvider(getCriteria(), true);
-                this.locationManager.requestLocationUpdates("gps", 1000L, 0.0f, this.locationListener);
-                this.locationManager.registerGnssStatusCallback(this.gnssStatusCallBack);
-                Location location = this.locationManager.getLastKnownLocation(bestProvider);
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 0.0f, locationListener);
+                locationManager.registerGnssStatusCallback(gnssStatusCallBack, gnssHandler);
+                Location location = locationManager.getLastKnownLocation(bestProvider);
                 updateLocation(location);
+            } catch (SecurityException ignored) {
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e(TAG, "Failed to initialize location update callbacks", e);
             }
         }
         timeUpdateCounter = 8;
     }
 
+    private void unregisterLocationUpdates() {
+        locationManager.unregisterGnssStatusCallback(gnssStatusCallBack);
+        locationManager.removeUpdates(locationListener);
+        locationManager = null;
+    }
+
     private Criteria getCriteria() {
         Criteria criteria = new Criteria();
-        criteria.setAccuracy(1);
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
         criteria.setSpeedRequired(true);
         criteria.setCostAllowed(false);
         criteria.setBearingRequired(false);
         criteria.setAltitudeRequired(true);
-        criteria.setPowerRequirement(1);
+        criteria.setPowerRequirement(Criteria.POWER_LOW);
         return criteria;
     }
 
-    @Override // android.app.Service
-    public void onStart(Intent intent, int startId) {
-        super.onStart(intent, startId);
-    }
-
-    @Override // android.app.Service
+    @Override
     public IBinder onBind(Intent intent) {
         return null;
     }
 
-    @Override // android.app.Service
+    @Override
     public void onDestroy() {
-        this.mCarManager.detach();
-        LocationManager locationManager = this.locationManager;
+        carManager.detach();
         if (locationManager != null) {
-            locationManager.unregisterGnssStatusCallback(this.gnssStatusCallBack);
-            this.locationManager.removeUpdates(this.locationListener);
-            this.locationManager = null;
+            unregisterLocationUpdates();
         }
-        unregisterReceiver(this.updateTime);
+        unregisterReceiver(updateTime);
         super.onDestroy();
     }
+
 }
