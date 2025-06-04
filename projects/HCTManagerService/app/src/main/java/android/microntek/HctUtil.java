@@ -117,7 +117,7 @@ public class HctUtil {
         return (int) vol;
     }
 
-    public static boolean CheckIsRun(Context ct, String pkgName) {
+    public static boolean isAppRunning(Context ct, String pkgName) {
         boolean is = false;
         boolean is2 = false;
         ActivityManager am = (ActivityManager) ct.getSystemService(Context.ACTIVITY_SERVICE);

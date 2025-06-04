@@ -1,5 +1,7 @@
 package android.microntek.service;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.ActivityOptions;
 import android.app.AlertDialog;
 import android.app.AppOpsManager;
@@ -33,6 +35,7 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.os.SystemProperties;
 import android.os.UserHandle;
@@ -51,7 +54,11 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 /* loaded from: classes.dex */
 public class MicrontekServer extends MicrontekServiceBase {
     public static final String CARTOUCH_SHOW = "cartouch_show";
@@ -94,15 +101,15 @@ public class MicrontekServer extends MicrontekServiceBase {
     private long mlPwerOnWifiApCheckDelayMillis = 3000;
     boolean screenOn = false;
     boolean keyscreenOn = false;
-    private boolean launcherflag = false;
+    private boolean launcherFlag = false;
     private boolean firstflag = false;
     private boolean isYoutube = false;
-    private int ScreenSaverTimeOut = -1;
-    private boolean ScreenSaverEnableLocal = false;
-    private boolean ScreenSaverEnable = false;
-    private int ScreenSaverTimer = 0;
+    private int screensaverTimeout = -1;
+    private boolean screensaverEnableLocal = false;
+    private boolean screensaverEnable = false;
+    private int screensaverTimer = 0;
     private boolean ScreenSaverOn = false;
-    private int mTouchCount = 5;
+    private int touchCount = 5;
     private int mModeDoulbe = 0;
     private int mHomeDoulbe = 0;
     private AlertDialog mApkDialog = null;
@@ -110,52 +117,52 @@ public class MicrontekServer extends MicrontekServiceBase {
     private int mCurInstallApk = 0;
     private boolean isInstallClear = false;
     private boolean isBoxStartApp = false;
-    private Handler mHandler = new Handler() { // from class: android.microntek.service.MicrontekServer.1
-        @Override // android.os.Handler
+    private final Handler handler = new Handler(Looper.myLooper()) {
+        @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             int i = msg.what;
             if (i != 65535) {
                 switch (i) {
                     case 0:
-                        MicrontekServer.this.TickTask();
+                        TickTask();
                         return;
                     case 1:
-                        if (MicrontekServiceBase.gps_open && MicrontekServiceBase.gps_isfront) {
-                            MicrontekServer.this.initGps();
-                            MicrontekServer.this.setParameters("av_gps_ontop=true");
+                        if (MicrontekServiceBase.gpsOpen && MicrontekServiceBase.gpsIsFront) {
+                            initGps();
+                            setParameters("av_gps_ontop=true");
                             return;
                         }
                         return;
                     case 2:
-                        if (!MicrontekServiceBase.gps_open || !MicrontekServiceBase.gps_isfront) {
-                            MicrontekServer.this.setParameters("av_gps_ontop=false");
+                        if (!MicrontekServiceBase.gpsOpen || !MicrontekServiceBase.gpsIsFront) {
+                            setParameters("av_gps_ontop=false");
                             return;
                         }
                         return;
                     case 3:
                         MicrontekServiceBase.mDeviceLock = false;
-                        if (MicrontekServiceBase.needrunnavi) {
-                            MicrontekServiceBase.needrunnavi = false;
-                            MicrontekServer.this.RunApp(MicrontekServiceBase.GPSPKNAME);
+                        if (MicrontekServiceBase.needRunNavi) {
+                            MicrontekServiceBase.needRunNavi = false;
+                            runApp(MicrontekServiceBase.GPSPKNAME);
                             return;
                         }
                         return;
                     case 4:
-                        MicrontekServer.this.startMusicClock();
+                        startMusicClock();
                         return;
                     case 5:
-                        MicrontekServer.this.setParameters("av_voiceprompt_on=false");
+                        setParameters("av_voiceprompt_on=false");
                         return;
                     case 6:
-                        MicrontekServer.this.SendTouchUpdate((List) msg.obj);
+                        SendTouchUpdate((List) msg.obj);
                         return;
                     case 7:
-                        MicrontekServer.this.setParameters("rpt_power=false");
+                        setParameters("rpt_power=false");
                         return;
                     case 8:
-                        if (MicrontekServer.this.mProgressDialog != null && MicrontekServer.this.mProgressDialog.isShowing()) {
-                            MicrontekServer.this.mProgressDialog.dismiss();
+                        if (progressDialog != null && progressDialog.isShowing()) {
+                            progressDialog.dismiss();
                             return;
                         }
                         return;
@@ -163,101 +170,100 @@ public class MicrontekServer extends MicrontekServiceBase {
                         SystemProperties.set("service.vending.enable", "1");
                         return;
                     case 10:
-                        MicrontekServer.this.MTCAdjVolume(0);
+                        MTCAdjVolume(0);
                         return;
                     case 11:
-                        MicrontekServer.this.MTCAdjVolume(1);
+                        MTCAdjVolume(1);
                         return;
                     case 12:
-                        MicrontekServer.this.updataWifiAPState();
+                        updataWifiAPState();
                         return;
                     case 13:
                         MicrontekServer microntekServer = MicrontekServer.this;
-                        microntekServer.setDefaultLauncher(microntekServer.mPackageName, MicrontekServer.this.mClassName);
+                        microntekServer.setDefaultLauncher(microntekServer.mPackageName, mClassName);
                         return;
                     case 14:
-                        MicrontekServer.this.mHandler.removeMessages(15);
+                        handler.removeMessages(15);
                         MicrontekServer.access$408(MicrontekServer.this);
-                        if (MicrontekServer.this.mModeDoulbe >= 2) {
-                            MicrontekServer.this.mModeDoulbe = 0;
+                        if (mModeDoulbe >= 2) {
+                            mModeDoulbe = 0;
                             HCTApi.switchDualScreen();
                             return;
                         }
-                        MicrontekServer.this.mHandler.sendEmptyMessageDelayed(15, 600L);
+                        handler.sendEmptyMessageDelayed(15, 600L);
                         return;
                     case 15:
-                        MicrontekServer.this.mModeDoulbe = 0;
-                        MicrontekServer.this.ModeSwitch();
+                        mModeDoulbe = 0;
+                        ModeSwitch();
                         return;
                     case 16:
-                        MicrontekServer.this.mHandler.removeMessages(17);
+                        handler.removeMessages(17);
                         MicrontekServer.access$508(MicrontekServer.this);
-                        if (MicrontekServer.this.mHomeDoulbe >= 2) {
-                            MicrontekServer.this.mHomeDoulbe = 0;
+                        if (mHomeDoulbe >= 2) {
+                            mHomeDoulbe = 0;
                             HCTApi.switchDualScreen();
                             return;
                         }
-                        MicrontekServer.this.mHandler.sendEmptyMessageDelayed(17, 600L);
+                        handler.sendEmptyMessageDelayed(17, 600L);
                         return;
                     case 17:
-                        MicrontekServer.this.mHomeDoulbe = 0;
-                        MicrontekServer.this.SystemKey(3, 0);
+                        mHomeDoulbe = 0;
+                        SystemKey(3, 0);
                         return;
                     case 18:
-                        MicrontekServer.this.showYHLogoView(false);
+                        showYHLogoView(false);
                         return;
                     default:
                         switch (i) {
                             case 21:
-                                if ("YH".equals(MicrontekServer.this.mCustomer) && !MicrontekServer.this.mBackviewState && !"com.microntek.dvr".equals(HctUtil.getTopActivityPackageName(MicrontekServer.this.mContext))) {
-                                    MicrontekServer.this.startPkg("com.microntek.dvr", "com.microntek.dvr.MainActivity");
+                                if ("YH".equals(customer) && !backviewState && !"com.microntek.dvr".equals(HctUtil.getTopActivityPackageName(mContext))) {
+                                    startPkg("com.microntek.dvr", "com.microntek.dvr.MainActivity");
                                     return;
                                 }
                                 return;
                             case 22:
-                                MicrontekServer.this.mAudioManager.setParameters("av_refresh=true");
+                                audioManager.setParameters("av_refresh=true");
                                 return;
                             case MicrontekServer.MSG_PWR_SCREEN /* 23 */:
-                                MicrontekServer.this.NeedStartApp();
+                                NeedStartApp();
                                 return;
                             case 24:
-                                MicrontekServer.this.mHandler.removeMessages(24);
+                                handler.removeMessages(24);
                                 String result = SystemProperties.get("sys.hct.copy.result", "");
                                 if (TextUtils.isEmpty(result)) {
-                                    MicrontekServer microntekServer2 = MicrontekServer.this;
-                                    microntekServer2.msg_index = (microntekServer2.msg_index + 1) % 6;
-                                    MicrontekServer.this.mCopyDialog.setMessage(MicrontekServer.DIALOG_MESSAGE[MicrontekServer.this.msg_index]);
-                                    MicrontekServer.this.mHandler.sendEmptyMessageDelayed(24, 800L);
+                                    msgIndex = (msgIndex + 1) % 6;
+                                    copyDialog.setMessage(MicrontekServer.DIALOG_MESSAGE[msgIndex]);
+                                    handler.sendEmptyMessageDelayed(24, 800L);
                                     return;
                                 } else if ("0".equals(result)) {
-                                    MicrontekServer.this.mCopyDialog.setMessage("Copy error !!!!");
-                                    MicrontekServer.this.mHandler.sendEmptyMessageDelayed(MicrontekServer.MSG_COPY_OK, 3000L);
+                                    copyDialog.setMessage("Copy error !!!!");
+                                    handler.sendEmptyMessageDelayed(MicrontekServer.MSG_COPY_OK, 3000L);
                                     return;
                                 } else if ("1".equals(result)) {
-                                    MicrontekServer.this.mCopyDialog.setMessage("Copy success");
-                                    MicrontekServer.this.mHandler.sendEmptyMessageDelayed(MicrontekServer.MSG_COPY_OK, 3000L);
+                                    copyDialog.setMessage("Copy success");
+                                    handler.sendEmptyMessageDelayed(MicrontekServer.MSG_COPY_OK, 3000L);
                                     return;
                                 } else {
                                     return;
                                 }
                             case MicrontekServer.MSG_COPY_OK /* 25 */:
-                                if (MicrontekServer.this.mCopyDialog != null) {
-                                    MicrontekServer.this.mCopyDialog.dismiss();
+                                if (copyDialog != null) {
+                                    copyDialog.dismiss();
                                     return;
                                 }
                                 return;
                             default:
                                 switch (i) {
                                     case 65296:
-                                        MicrontekServer.this.durationTime = System.currentTimeMillis();
-                                        if (((MicrontekServer.this.durationTime - MicrontekServer.this.initialTime) / 1000 >= 10 || MicrontekServer.this.isRunUsbIpod) && !MicrontekServer.this.mUsbIpod && MicrontekServer.this.mPowerState == 2 && !MicrontekServiceBase.btLock && !MicrontekServer.this.mBackviewState) {
-                                            MicrontekServer.this.startUsbIpod(0);
+                                        durationTime = System.currentTimeMillis();
+                                        if (((durationTime - initialTime) / 1000 >= 10 || isRunUsbIpod) && !mUsbIpod && powerState == 2 && !MicrontekServiceBase.btLock && !backviewState) {
+                                            startUsbIpod(0);
                                         }
-                                        MicrontekServer.this.mUsbIpod = true;
-                                        MicrontekServer.this.isRunUsbIpod = false;
+                                        mUsbIpod = true;
+                                        isRunUsbIpod = false;
                                         return;
                                     case 65297:
-                                        MicrontekServer.this.mUsbIpod = false;
+                                        mUsbIpod = false;
                                         return;
                                     default:
                                         return;
@@ -266,355 +272,332 @@ public class MicrontekServer extends MicrontekServiceBase {
                 }
             }
             MicrontekServer.access$1008(MicrontekServer.this);
-            if (MicrontekServer.this.mCurInstallApk >= MicrontekServer.this.mApkFileNames.length || msg.arg1 == -1) {
-                if (MicrontekServer.this.mApkDialog != null && MicrontekServer.this.mApkDialog.isShowing()) {
-                    MicrontekServer.this.mApkDialog.dismiss();
+            if (mCurInstallApk >= mApkFileNames.length || msg.arg1 == -1) {
+                if (mApkDialog != null && mApkDialog.isShowing()) {
+                    mApkDialog.dismiss();
                     return;
                 }
                 return;
             }
             MicrontekServer microntekServer3 = MicrontekServer.this;
-            microntekServer3.instatllBatch(microntekServer3.mApkFileNames[MicrontekServer.this.mCurInstallApk]);
+            microntekServer3.instatllBatch(microntekServer3.mApkFileNames[mCurInstallApk]);
         }
     };
-    private MfiListener mListener = new MfiListener() { // from class: android.microntek.service.MicrontekServer.2
+
+    private final MfiListener mfiListener = new MfiListener() {
         public void onConnected() {
-            Message msg = MicrontekServer.this.mHandler.obtainMessage();
-            msg.what = 65296;
-            MicrontekServer.this.mHandler.sendMessage(msg);
+            Message msg = handler.obtainMessage();
+            msg.what = MSG_MFI_CONNECTED;
+            handler.sendMessage(msg);
         }
 
         public void onDisconnected() {
-            Message msg = MicrontekServer.this.mHandler.obtainMessage();
-            msg.what = 65297;
-            MicrontekServer.this.mHandler.sendMessage(msg);
+            Message msg = handler.obtainMessage();
+            msg.what = MSG_MFI_DISCONNECTED;
+            handler.sendMessage(msg);
         }
     };
-    private BroadcastReceiver screenClockBroadcast = new BroadcastReceiver() { // from class: android.microntek.service.MicrontekServer.4
-        @Override // android.content.BroadcastReceiver
+
+    private final BroadcastReceiver screenClockBroadcast = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if ("changescreenclock".equals(action)) {
-                int vaule = intent.getIntExtra("myscreenclock", 0);
-                if (1 == vaule) {
-                    MicrontekServer.this.ScreenSaverEnableLocal = true;
-                    MicrontekServer.this.ScreenSaverEnable = true;
-                    MicrontekServer microntekServer = MicrontekServer.this;
-                    microntekServer.ScreenSaverTimeOut = Settings.System.getInt(microntekServer.getContentResolver(), "musicscreen_timeout", 30);
-                } else if (vaule == 0) {
-                    MicrontekServer.this.ScreenSaverEnableLocal = false;
-                    MicrontekServer.this.ScreenSaverEnable = false;
-                    MicrontekServer.this.ScreenSaverTimeOut = -1;
+                int value = intent.getIntExtra("myscreenclock", 0);
+                if (1 == value) {
+                    screensaverEnableLocal = true;
+                    screensaverEnable = true;
+                    screensaverTimeout = Settings.System.getInt(getContentResolver(), "musicscreen_timeout", 30);
+                } else if (value == 0) {
+                    screensaverEnableLocal = false;
+                    screensaverEnable = false;
+                    screensaverTimeout = -1;
                 }
-                MicrontekServer.this.ScreenSaverTimer = 0;
+                screensaverTimer = 0;
             }
         }
     };
-    private BroadcastReceiver mInstallApkReceiver = new BroadcastReceiver() { // from class: android.microntek.service.MicrontekServer.5
-        @Override // android.content.BroadcastReceiver
+
+    private final BroadcastReceiver installApkReceiver = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
-            String path;
             String action = intent.getAction();
-            if (action.equals(Constant.MSG_INSTALL_XRROSS) && (path = intent.getExtras().getString(MicrontekServiceBase.VALUE)) != null && new File(path).exists()) {
-                new InstallUtil(MicrontekServer.this.mContext, path, new Handler() { // from class: android.microntek.service.MicrontekServer.5.1
-                    @Override // android.os.Handler
+            String path = intent.getExtras().getString("value");
+            if (action.equals(Constant.MSG_INSTALL_XRROSS) && path != null && new File(path).exists()) {
+                new InstallUtil(getBaseContext(), path, new Handler(Looper.myLooper()) {
+                    @Override
                     public void handleMessage(Message msg) {
                         super.handleMessage(msg);
                         Intent intent2 = new Intent(InstallUtil.MSG_INSTALL_XRROSS_OK);
                         intent2.putExtra("package", (String) msg.obj);
-                        MicrontekServer.this.sendBroadcastAsUser(intent2, UserHandle.ALL);
+                        sendBroadcastAsUser(intent2, UserHandle.ALL);
                     }
                 });
             }
         }
     };
-    private BroadcastReceiver mInstallReceiver = new BroadcastReceiver() { // from class: android.microntek.service.MicrontekServer.6
-        @Override // android.content.BroadcastReceiver
+
+    private final BroadcastReceiver installReceiver = new BroadcastReceiver() {
+        @SuppressLint("WrongConstant")
+        @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if ("1".equals(SystemProperties.get("ro.product.market.mode", "0")) && action.equals("android.intent.action.PACKAGE_ADDED")) {
+            try {
+                String action = intent.getAction();
                 String packageName = intent.getData().getSchemeSpecificPart();
-                try {
-                    MicrontekServer.this.mPackageInfo = MicrontekServer.this.getPackageManager().getPackageInfo(packageName, 4198976);
-                    String[] permissons = MicrontekServer.this.mPackageInfo.requestedPermissions;
-                    boolean needSetCanInstallApps = false;
-                    for (String permisson : permissons) {
-                        if ("android.permission.INSTALL_PACKAGES".equals(permisson) || "android.permission.REQUEST_INSTALL_PACKAGES".equals(permisson)) {
-                            needSetCanInstallApps = true;
+                if (Intent.ACTION_PACKAGE_ADDED.equals(action)) {
+                    if ("1".equals(SystemProperties.get("ro.product.market.mode", "0"))) {
+                        int flags = PackageManager.GET_PERMISSIONS |
+                                PackageManager.MATCH_DISABLED_COMPONENTS |
+                                PackageManager.MATCH_STATIC_SHARED_LIBRARIES |
+                                PackageManager.GET_SIGNATURES;
+
+                        mPackageInfo = getPackageManager().getPackageInfo(packageName, flags);
+                        String[] permissions = mPackageInfo.requestedPermissions;
+                        boolean needToSetCanInstallApps = false;
+                        for (String permission : permissions) {
+                            if (Manifest.permission.INSTALL_PACKAGES.equals(permission) ||
+                                    Manifest.permission.REQUEST_INSTALL_PACKAGES.equals(permission)) {
+                                needToSetCanInstallApps = true;
+                                break;
+                            }
+                        }
+                        if (needToSetCanInstallApps) {
+                            setCanInstallApps(true, packageName);
                         }
                     }
-                    if (needSetCanInstallApps) {
-                        MicrontekServer.this.setCanInstallApps(true, packageName);
-                    }
-                } catch (Exception e) {
-                }
-            }
-            if ("android.intent.action.PACKAGE_ADDED".equals(action)) {
-                try {
-                    String packageName2 = intent.getData().getSchemeSpecificPart();
-                    if ("android.microntek.canbus".equals(packageName2)) {
+                    if ("android.microntek.canbus".equals(packageName)) {
                         Intent canserviceintent = new Intent();
                         canserviceintent.setComponent(new ComponentName("android.microntek.canbus", "android.microntek.canbus.CanBusServer"));
-                        MicrontekServer.this.startServiceAsUser(canserviceintent, UserHandle.OWNER);
+                        startServiceAsUser(canserviceintent, UserHandle.SYSTEM);
                     }
-                    if (MicrontekServer.this.mCustomerSub.equals("GS9")) {
-                        if (TextUtils.isEmpty(packageName2)) {
-                            return;
-                        }
-                        String packageName3 = packageName2.substring(packageName2.indexOf(":") + 1);
-                        Log.i("wuwq", "mInstallReceiver: " + packageName3);
-                        if (!TextUtils.isEmpty(packageName3) && "com.xtrons.app".equals(packageName3)) {
-                            HctUtil.execCmd("dpm set-device-owner com.xtrons.app/.MainActivity");
-                        } else if (!TextUtils.isEmpty(packageName3) && "com.togoinsights.deviceadmin".equals(packageName3)) {
-                            HctUtil.execCmd("dpm set-device-owner com.togoinsights.deviceadmin/.AdminActivity");
-                        }
-                    } else if ((MicrontekServer.this.mCustomerSub.equals("TELENAV_SCOUT") || MicrontekServer.this.mCustomerSub.equals("TELENAV_S4C")) && !TextUtils.isEmpty(packageName2)) {
-                        String packageName4 = packageName2.substring(packageName2.indexOf(":") + 1);
-                        Log.i("wuwq", "mInstallReceiver: " + packageName4);
-                        if (TextUtils.isEmpty(packageName4)) {
-                            return;
-                        }
-                        if ("com.telenav.launcher".equals(packageName4) || "com.telenav.vivid.scout4cars.launcher".equals(packageName4)) {
-                            MicrontekServer.this.setInstallPackagesPermissions(packageName4);
-                            HctUtil.execCmd("dpm set-device-owner " + packageName4 + "/" + packageName4 + ".home.LauncherActivity");
-                        }
-                    }
-                } catch (Exception e2) {
                 }
+            } catch (Exception ignored) {
             }
         }
     };
-    private BroadcastReceiver mLocaleReceiver = new BroadcastReceiver() { // from class: android.microntek.service.MicrontekServer.7
-        @Override // android.content.BroadcastReceiver
+
+    private final BroadcastReceiver localeReceiver = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (action.equals("android.intent.action.LOCALE_CHANGED")) {
-                MicrontekServer.this.mProgressDialog = null;
+            if (action.equals(Intent.ACTION_LOCALE_CHANGED)) {
+                progressDialog = null;
             }
         }
     };
-    private BroadcastReceiver mHdmiReceiver = new BroadcastReceiver() { // from class: android.microntek.service.MicrontekServer.8
-        @Override // android.content.BroadcastReceiver
+
+    private final BroadcastReceiver hdmiReceiver = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             if (action.equals(Constant.ACTION_PLUGGED)) {
                 boolean state = intent.getBooleanExtra("state", false);
-                String boot_completed = SystemProperties.get("sys.boot_completed", "0");
-                if (!boot_completed.equals("0") && state) {
-                    MicrontekServer.this.mHandler.postDelayed(new Runnable() { // from class: android.microntek.service.MicrontekServer.8.1
-                        @Override // java.lang.Runnable
-                        public void run() {
-                            MicrontekServer.this.startExtShow();
-                        }
-                    }, 10000L);
+                boolean bootCompleted = SystemProperties.get("sys.boot_completed", "0").equals("1");
+                if (bootCompleted && state) {
+                    handler.postDelayed(() -> startExtShow(), 10_000L);
                 } else if (!state) {
-                    MicrontekServer.this.sendKeyCode(1026);
+                    sendKeyCode(1026);
                 }
             } else if (action.equals("com.microntek.extshow.start")) {
-                MicrontekServer.this.startExtShow();
+                startExtShow();
             }
         }
     };
-    private boolean mWifiFirstRevFlag = true;
-    private final BroadcastReceiver mWifiReceiver = new BroadcastReceiver() { // from class: android.microntek.service.MicrontekServer.9
-        @Override // android.content.BroadcastReceiver
+
+    private boolean wifiFirstRevFlag = true;
+    private int wifiApCheckCount = 20;
+    private boolean isFirstUpdateWifiAPState = true;
+    private final BroadcastReceiver wifiReceiver = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            WifiManager wifiManager = (WifiManager) MicrontekServer.this.mContext.getSystemService("wifi");
-            if ("android.net.wifi.WIFI_STATE_CHANGED".equals(action)) {
-                if (2 == MicrontekServer.this.mPowerState || MicrontekServer.this.mWifiFirstRevFlag) {
-                    int nWifistate = wifiManager.getWifiState();
-                    if ((3 == nWifistate || 1 == nWifistate) && MicrontekServer.this.getWifiDriverState() && (!MicrontekServer.this.mWifiFirstRevFlag || 1 != Settings.System.getInt(MicrontekServer.this.getContentResolver(), "status_acc_off_ap_opened", 0))) {
-                        boolean apstate = MicrontekServer.this.mWifiManager.getWifiApState() == 13;
-                        boolean wifistate = MicrontekServer.this.mWifiManager.isWifiEnabled();
-                        Settings.System.putInt(MicrontekServer.this.getContentResolver(), "status_acc_off_wifi_opened", wifistate ? 1 : 0);
-                        Settings.System.putInt(MicrontekServer.this.getContentResolver(), "status_acc_off_ap_opened", apstate ? 1 : 0);
+            WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            if (WifiManager.WIFI_STATE_CHANGED_ACTION.equals(action)) {
+                if (MicrontekServiceBase.POWER_STA_ON == powerState || wifiFirstRevFlag) {
+                    int wifiState = wifiManager.getWifiState();
+                    if (
+                        (WifiManager.WIFI_STATE_ENABLED == wifiState || WifiManager.WIFI_STATE_DISABLED == wifiState) &&
+                        getWifiDriverState() &&
+                        (!wifiFirstRevFlag || Settings.System.getInt(getContentResolver(), "status_acc_off_ap_opened", 0) != 1)
+                    ) {
+                        boolean apState = wifiManager.getWifiApState() == WifiManager.WIFI_AP_STATE_ENABLED;
+                        boolean wifiEnabled = wifiManager.isWifiEnabled();
+                        Settings.System.putInt(getContentResolver(), "status_acc_off_wifi_opened", wifiEnabled ? 1 : 0);
+                        Settings.System.putInt(getContentResolver(), "status_acc_off_ap_opened", apState ? 1 : 0);
                     }
-                } else if (MicrontekServer.this.mPowerState == 0) {
-                    if (3 == wifiManager.getWifiState()) {
-                        MicrontekServer.this.setWifiOn(false);
+                } else if (powerState == MicrontekServiceBase.POWER_STA_ACC_OFF) {
+                    if (WifiManager.WIFI_STATE_ENABLED == wifiManager.getWifiState()) {
+                        setWifiOn(false);
                     }
                 }
-            } else if ("android.net.wifi.WIFI_AP_STATE_CHANGED".equals(action)) {
-                if (2 == MicrontekServer.this.mPowerState || MicrontekServer.this.mWifiFirstRevFlag) {
-                    int wifiApState = MicrontekServer.this.getWifiApState();
-                    if (13 == wifiApState || 11 == wifiApState) {
-                        MicrontekServer.this.mWaitingForTerminalState = false;
-                        if (MicrontekServer.this.getWifiDriverState()) {
-                            boolean apstate2 = MicrontekServer.this.getWifiApState() == 13;
-                            boolean wifistate2 = MicrontekServer.this.mWifiManager.isWifiEnabled();
-                            Settings.System.putInt(MicrontekServer.this.getContentResolver(), "status_acc_off_wifi_opened", wifistate2 ? 1 : 0);
-                            Settings.System.putInt(MicrontekServer.this.getContentResolver(), "status_acc_off_ap_opened", apstate2 ? 1 : 0);
+            } else if (WifiManager.WIFI_AP_STATE_CHANGED_ACTION.equals(action)) {
+                if (MicrontekServiceBase.POWER_STA_ON == powerState || wifiFirstRevFlag) {
+                    int wifiApState = getWifiApState();
+                    if (WifiManager.WIFI_AP_STATE_ENABLED == wifiApState || WifiManager.WIFI_AP_STATE_DISABLED == wifiApState) {
+                        waitingForTerminalState = false;
+                        if (getWifiDriverState()) {
+                            boolean apState = wifiManager.getWifiApState() == WifiManager.WIFI_AP_STATE_ENABLED;
+                            boolean wifiEnabled = wifiManager.isWifiEnabled();
+                            Settings.System.putInt(getContentResolver(), "status_acc_off_wifi_opened", wifiEnabled ? 1 : 0);
+                            Settings.System.putInt(getContentResolver(), "status_acc_off_ap_opened", apState ? 1 : 0);
                         }
-                    } else if (14 == wifiApState) {
-                        Log.i("wuwq", "mWifiReceiver *** WIFI_AP_STATE_FAILED state is Failed. ");
-                        MicrontekServer.this.wifiapcheck_cnt = 20;
-                        MicrontekServer.this.mIsFirstUpdataWifiAPState = true;
-                        MicrontekServer.this.mHandler.removeMessages(12);
-                        Message msg = MicrontekServer.this.mHandler.obtainMessage();
-                        msg.what = 12;
-                        MicrontekServer.this.mHandler.sendMessageDelayed(msg, 3000L);
+                    } else if (WifiManager.WIFI_AP_STATE_FAILED == wifiApState) {
+                        Log.i(TAG, "wifiReceiver *** WIFI_AP_STATE_FAILED state is Failed. ");
+                        wifiApCheckCount = 20;
+                        isFirstUpdateWifiAPState = true;
+                        handler.removeMessages(MSG_WIFI_AP_CHECK);
+                        Message msg = handler.obtainMessage();
+                        msg.what = MSG_WIFI_AP_CHECK;
+                        handler.sendMessageDelayed(msg, 3_000L);
                     }
-                } else if (MicrontekServer.this.mPowerState == 0) {
-                    if (13 == MicrontekServer.this.getWifiApState()) {
-                        MicrontekServer.this.setWifiApEnabled(false);
+                } else if (powerState == MicrontekServiceBase.POWER_STA_ACC_OFF) {
+                    if (WifiManager.WIFI_AP_STATE_ENABLED == getWifiApState()) {
+                        setWifiApEnabled(false);
                     }
                 }
             } else {
-                if ("android.net.wifi.supplicant.STATE_CHANGE".equals(action) && 2 == MicrontekServer.this.mPowerState) {
-                    SupplicantState supplicantState = (SupplicantState) intent.getParcelableExtra("newState");
+                if (WifiManager.SUPPLICANT_STATE_CHANGED_ACTION.equals(action) && MicrontekServiceBase.POWER_STA_ON == powerState) {
+                    SupplicantState supplicantState = intent.getParcelableExtra("newState");
                     if (SupplicantState.INTERFACE_DISABLED.equals(supplicantState)) {
-                        Log.i("wuwq", "mWifiReceiver supplicant state is disabled. ");
-                        MicrontekServer.this.wifiapcheck_cnt = 20;
-                        MicrontekServer.this.mIsFirstUpdataWifiAPState = true;
-                        MicrontekServer.this.mHandler.removeMessages(12);
-                        Message msg2 = MicrontekServer.this.mHandler.obtainMessage();
-                        msg2.what = 12;
-                        MicrontekServer.this.mHandler.sendMessageDelayed(msg2, 3000L);
+                        Log.i(TAG, "wifiReceiver supplicant state is disabled. ");
+                        wifiApCheckCount = 20;
+                        isFirstUpdateWifiAPState = true;
+                        handler.removeMessages(MSG_WIFI_AP_CHECK);
+                        Message msg = handler.obtainMessage();
+                        msg.what = MSG_WIFI_AP_CHECK;
+                        handler.sendMessageDelayed(msg, 3_000L);
                     }
                 }
             }
         }
     };
-    private int wifiapcheck_cnt = 20;
-    private boolean mIsFirstUpdataWifiAPState = true;
-    private boolean mUpdataingWifiAPState = false;
-    private Runnable PowerOffRunnable = new Runnable() { // from class: android.microntek.service.MicrontekServer.11
-        @Override // java.lang.Runnable
-        public void run() {
-            MicrontekServer.this.PowerOffAction();
-        }
-    };
-    private int msg_index = 0;
-    private AlertDialog mCopyDialog = null;
-    private PhoneStateListener phoneListener = new PhoneStateListener() { // from class: android.microntek.service.MicrontekServer.16
-        @Override // android.telephony.PhoneStateListener
+
+    private boolean updatingWifiAPState = false;
+    private final Runnable powerOffRunnable = this::powerOffAction;
+
+    private int msgIndex = 0;
+    private AlertDialog copyDialog;
+
+    private final PhoneStateListener phoneListener = new PhoneStateListener() {
+        @Override
         public void onCallStateChanged(int state, String incomingNumber) {
             super.onCallStateChanged(state, incomingNumber);
-            if (state == 0) {
-                MicrontekServer.this.setParameters("av_phone_sim=hangup");
-                MicrontekServiceBase.simPhoneLock = false;
-                MicrontekServer.this.MTCAdjVolume(2);
-            } else if (state != 1) {
-                if (state == 2) {
-                    MicrontekServer.this.setParameters("av_phone_sim=answer");
-                    MicrontekServiceBase.simPhoneLock = true;
-                    MicrontekServer.this.MTCAdjVolume(2);
+            if (state == TelephonyManager.CALL_STATE_IDLE) {
+                setParameters("av_phone_sim=hangup");
+                simPhoneLock = false;
+                MTCAdjVolume(2);
+            } else if (state != TelephonyManager.CALL_STATE_RINGING) {
+                if (state == TelephonyManager.CALL_STATE_OFFHOOK) {
+                    setParameters("av_phone_sim=answer");
+                    simPhoneLock = true;
+                    MTCAdjVolume(2);
                 }
             } else {
-                MicrontekServer.this.setParameters("av_phone_sim=in");
-                MicrontekServiceBase.simPhoneLock = true;
-                MicrontekServer.this.MTCAdjVolume(2);
+                setParameters("av_phone_sim=in");
+                simPhoneLock = true;
+                MTCAdjVolume(2);
             }
         }
     };
-    private BroadcastReceiver phoneReceiver = new BroadcastReceiver() { // from class: android.microntek.service.MicrontekServer.17
-        @Override // android.content.BroadcastReceiver
+
+    private final BroadcastReceiver phoneReceiver = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals("android.intent.action.NEW_OUTGOING_CALL")) {
                 intent.getStringExtra("android.intent.extra.PHONE_NUMBER");
-                MicrontekServer.this.setParameters("av_phone_sim=out");
-                MicrontekServiceBase.simPhoneLock = true;
-                MicrontekServer.this.MTCAdjVolume(2);
+                setParameters("av_phone_sim=out");
+                simPhoneLock = true;
+                MTCAdjVolume(2);
             }
         }
     };
-    private BroadcastReceiver MediaDetectReceiver = new BroadcastReceiver() { // from class: android.microntek.service.MicrontekServer.18
-        @Override // android.content.BroadcastReceiver
+
+    private final BroadcastReceiver mediaDetectReceiver = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
-            int autoPlayEN = Settings.System.getInt(MicrontekServer.this.getContentResolver(), Constant.MEDIAAUTOEN_STRING, 0);
+            int autoPlayEnabled = Settings.System.getInt(getContentResolver(), Constant.MEDIAAUTOEN_STRING, 0);
             String action = intent.getAction();
-            if (action.equals("android.intent.action.MEDIA_MOUNTED")) {
-                if (MicrontekServer.this.mPowerState != 2 || MicrontekServer.this.mBackviewState) {
+            if (action.equals(Intent.ACTION_MEDIA_MOUNTED)) {
+                if (powerState != POWER_STA_ON || backviewState) {
                     return;
                 }
-                String path = MicrontekServer.this.convertStorageToMnt(intent.getData().getPath());
-                MicrontekServer microntekServer = MicrontekServer.this;
-                String devString = microntekServer.getDeviceType(context, microntekServer.convertMntToStorage(path));
-                if (devString.equals("GPS") && MicrontekServiceBase.needrunnavi) {
-                    MicrontekServiceBase.needrunnavi = false;
-                    MicrontekServer.this.RunApp(MicrontekServiceBase.GPSPKNAME);
+                String path = convertStorageToMnt(intent.getData().getPath());
+                String devString = getDeviceType(context, convertMntToStorage(path));
+                if (devString.equals("GPS") && needRunNavi) {
+                    needRunNavi = false;
+                    runApp(MicrontekServiceBase.GPSPKNAME);
                 }
-                if (!MicrontekServer.this.checkSystemMcuAutoUpdate(path)) {
-                    MicrontekServer.this.checkTouchUpdate(path);
-                    MicrontekServer.this.updateDmcuExtCfg(path);
-                    MicrontekServer.this.checkAutoInstallApk(path);
-                    MicrontekServer.this.updateHctExtCfg(path);
-                    MicrontekServer.this.saveCustomerLogo(path);
-                    if (!MicrontekServiceBase.btLock && !MicrontekServiceBase.mDeviceLock && autoPlayEN != 0) {
-                        MicrontekServer.this.clearMusicClock();
+                if (!checkSystemMcuAutoUpdate(path)) {
+                    checkTouchUpdate(path);
+                    updateDmcuExtCfg(path);
+                    checkAutoInstallApk(path);
+                    updateHctExtCfg(path);
+                    saveCustomerLogo(path);
+                    if (!MicrontekServiceBase.btLock && !MicrontekServiceBase.mDeviceLock && autoPlayEnabled != 0) {
+                        clearMusicClock();
                         String customer = SystemProperties.get("ro.product.customer", "HCT");
                         if (!TextUtils.isEmpty(devString) && !devString.equals("FLASH")) {
-                            if ((devString.equals("GPS") && !"YH".equals(customer)) || Constant.MUSICPACKAGE.equals(HctUtil.getTopActivityPackageName(context))) {
+                            if ((devString.equals("GPS") && !"YH".equals(customer)) ||
+                                Constant.MUSICPACKAGE.equals(HctUtil.getTopActivityPackageName(context))) {
                                 return;
                             }
                             String[] versionParts = Build.VERSION.RELEASE.split("\\.");
-                            int majorVersion = Integer.valueOf(versionParts[0]).intValue();
+                            int majorVersion = Integer.parseInt(versionParts[0]);
                             if (majorVersion > 9) {
-                                MicrontekServer.this.durationTime = System.currentTimeMillis();
-                                if ((MicrontekServer.this.durationTime - MicrontekServer.this.initialTime) / 1000 > 15) {
-                                    MicrontekServer.this.startMusic(path, 0);
+                                durationTime = System.currentTimeMillis();
+                                if ((durationTime - initialTime) / 1000 > 15) {
+                                    startMusic(path, 0);
                                     return;
                                 }
                                 return;
                             }
-                            MicrontekServer.this.startMusic(path, 0);
+                            startMusic(path, 0);
                         }
                     }
                 }
-            } else if (action.equals("android.intent.action.MEDIA_UNMOUNTED") || action.equals("android.intent.action.MEDIA_EJECT")) {
-                MicrontekServer.this.mHandler.removeMessages(6);
+            } else if (action.equals(Intent.ACTION_MEDIA_UNMOUNTED) || action.equals(Intent.ACTION_MEDIA_EJECT)) {
+                handler.removeMessages(MSG_TOUCH_UPDATE);
             }
         }
     };
-    private BroadcastReceiver MTCAPPProc = new BroadcastReceiver() { // from class: android.microntek.service.MicrontekServer.19
-        @Override // android.content.BroadcastReceiver
+
+    private final BroadcastReceiver MTCAPPProc = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
-            String pkname;
-            String VOL;
+            String pkgName;
+            String volume;
             String action = intent.getAction();
             if (action.equals(Constant.MSG_BEEP)) {
-                MicrontekServer.this.setParameters("ctl_beep=1");
-                MicrontekServer.this.clearMusicClock();
+                setParameters("ctl_beep=1");
+                clearMusicClock();
             } else if (action.equals(Constant.MSG_BEEP_CLEAR_SCREEN)) {
-                MicrontekServer.this.clearMusicClock();
+                clearMusicClock();
             } else if (action.equals(Constant.MSG_MTC_PROMPT)) {
                 if (intent.hasExtra("package")) {
-                    String pgname = intent.getStringExtra("package");
-                    MicrontekServer microntekServer = MicrontekServer.this;
-                    microntekServer.setParameters("av_voiceprompt_package=" + pgname);
+                    String pkName = intent.getStringExtra("package");
+                    setParameters("av_voiceprompt_package=" + pkName);
                 }
                 if (intent.hasExtra("state")) {
                     String state = intent.getStringExtra("state");
                     if (state.equals("on")) {
-                        MicrontekServer.this.setParameters("av_voiceprompt_on=true");
-                        MicrontekServer.this.mHandler.removeMessages(5);
-                        MicrontekServer.this.mHandler.sendEmptyMessageDelayed(5, 3000L);
+                        setParameters("av_voiceprompt_on=true");
+                        handler.removeMessages(5);
+                        handler.sendEmptyMessageDelayed(5, 3_000L);
                         return;
                     }
-                    MicrontekServer.this.setParameters("av_voiceprompt_on=false");
+                    setParameters("av_voiceprompt_on=false");
                 }
             } else if (action.equals(Constant.MSG_MTC_VOLUME_SET)) {
                 int vol = MicrontekServiceBase.mCurVolume;
                 if (intent.hasExtra("type")) {
                     String type = intent.getStringExtra("type");
                     if (type.equals("add")) {
-                        if ("HZC23".equals(MicrontekServer.this.mCustomerSub) || "HZC39".equals(MicrontekServer.this.mCustomerSub) || "HZC40".equals(MicrontekServer.this.mCustomerSub)) {
-                            int vol2 = MicrontekServiceBase.mCurVolume;
-                            vol = vol2 + 1;
-                        } else {
-                            vol = MicrontekServiceBase.mCurVolume + (MicrontekServiceBase.KEY_VOLMAX / 10);
-                        }
+                        vol = MicrontekServiceBase.mCurVolume + (MicrontekServiceBase.KEY_VOLMAX / 10);
                         if (vol > MicrontekServiceBase.KEY_VOLMAX) {
                             vol = MicrontekServiceBase.KEY_VOLMAX;
                         }
                     } else if (type.equals("sub")) {
-                        if ("HZC23".equals(MicrontekServer.this.mCustomerSub) || "HZC39".equals(MicrontekServer.this.mCustomerSub) || "HZC40".equals(MicrontekServer.this.mCustomerSub)) {
-                            int vol3 = MicrontekServiceBase.mCurVolume;
-                            vol = vol3 - 1;
-                        } else {
-                            vol = MicrontekServiceBase.mCurVolume - (MicrontekServiceBase.KEY_VOLMAX / 10);
-                        }
+                        vol = MicrontekServiceBase.mCurVolume - (MicrontekServiceBase.KEY_VOLMAX / 10);
                         if (vol < 0) {
                             vol = 0;
                         }
@@ -625,265 +608,250 @@ public class MicrontekServer extends MicrontekServiceBase {
                 } else {
                     return;
                 }
-                MicrontekServer.this.OnChangeVolume(vol);
-            } else if (action.equals("android.media.VOLUME_CHANGED_ACTION")) {
-                if (intent.getIntExtra("android.media.EXTRA_VOLUME_STREAM_TYPE", -1) == 3 && MicrontekServer.this.mMcuVersion.contains("HXD")) {
-                    int max = MicrontekServer.this.mAudioManager.getStreamMaxVolume(3);
-                    int current = MicrontekServer.this.mAudioManager.getStreamVolume(3);
-                    if (max == MicrontekServiceBase.KEY_VOLMAX && current <= MicrontekServiceBase.KEY_VOLMAX && current != MicrontekServer.this.mVolumeTemp) {
-                        Log.i("MicrontekServer", "--mtc AudioManagerVOL current:" + current + "mVolumeTemp:" + MicrontekServer.this.mVolumeTemp);
-                        MicrontekServer.this.OnChangeVolume(current);
+                onChangeVolume(vol);
+            } else if (action.equals(AudioManager.VOLUME_CHANGED_ACTION)) {
+                if (intent.getIntExtra(AudioManager.EXTRA_VOLUME_STREAM_TYPE, -1) == AudioManager.STREAM_MUSIC && mMcuVersion.contains("HXD")) {
+                    int max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                    int current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+                    if (max == MicrontekServiceBase.KEY_VOLMAX && current <= MicrontekServiceBase.KEY_VOLMAX && current != volumeTemp) {
+                        Log.i(TAG, "--mtc AudioManagerVOL current:" + current + "volumeTemp:" + volumeTemp);
+                        onChangeVolume(current);
                     }
                 }
             } else if (action.equals(Constant.MSG_MTC_BLIGHT_SET)) {
                 int level = intent.getIntExtra("level", 100);
-                MicrontekServer.this._setHctBacklight(level);
+                setHctBacklight(level);
             } else if (action.equals(Constant.MSG_MTC_APP)) {
                 if (intent.hasExtra(Constant.HCT_APP_KEY)) {
                     String app = intent.getStringExtra(Constant.HCT_APP_KEY);
                     if (app.equals("music")) {
-                        MicrontekServer.this.startMusic(null, 0);
+                        startMusic(null, 0);
                     } else if (app.equals("movie")) {
-                        MicrontekServer.this.startMovie(0);
+                        startMovie(0);
                     } else if (app.equals("radio")) {
                         int freq = -1;
                         if (intent.hasExtra(Constant.HCT_APP_KEY2)) {
                             freq = intent.getIntExtra(Constant.HCT_APP_KEY2, -1);
                         }
                         if (freq != -1) {
-                            MicrontekServer microntekServer2 = MicrontekServer.this;
-                            microntekServer2.startRadio(0, "" + freq);
+                            startRadio(0, "" + freq);
                             return;
                         }
-                        MicrontekServer.this.startRadio(0);
+                        startRadio(0);
                     } else if (app.equals("dvd")) {
-                        MicrontekServer.this.startDVD(0);
-                    } else if (!app.equals("navi") || MicrontekServiceBase.gps_isfront) {
+                        startDVD(0);
                     } else {
-                        if (TextUtils.isEmpty(MicrontekServiceBase.GPSPKNAME) || !HctUtil.isPackageApplicationEnabled(MicrontekServer.this.mContext, MicrontekServiceBase.GPSPKNAME)) {
-                            MicrontekServer.this.RunApp(Constant.NAVIPACKAGE);
+                        if (TextUtils.isEmpty(MicrontekServiceBase.GPSPKNAME) || !HctUtil.isPackageApplicationEnabled(mContext, MicrontekServiceBase.GPSPKNAME)) {
+                            runApp(Constant.NAVIPACKAGE);
                         } else {
-                            MicrontekServer.this.RunApp(MicrontekServiceBase.GPSPKNAME);
+                            runApp(MicrontekServiceBase.GPSPKNAME);
                         }
                     }
                 }
             } else if (action.equals(Constant.MSG_SHOW_VOLUME)) {
                 if (MicrontekServiceBase.btLock || MicrontekServiceBase.simPhoneLock) {
-                    VOL = Constant.PHONEVOLUME;
+                    volume = Constant.PHONEVOLUME;
                 } else {
-                    VOL = Constant.MTCVOLUME;
+                    volume = Constant.MTCVOLUME;
                 }
-                MicrontekServiceBase.mCurVolume = Settings.System.getInt(MicrontekServer.this.getContentResolver(), VOL, MicrontekServiceBase.KEY_VOLMAX / 2);
-                MicrontekServer.this.ShowVolumeDalog(MicrontekServiceBase.mCurVolume);
+                MicrontekServiceBase.mCurVolume = Settings.System.getInt(getContentResolver(), volume, MicrontekServiceBase.KEY_VOLMAX / 2);
+                showVolumeDialog(MicrontekServiceBase.mCurVolume);
             } else if (!action.equals(Constant.MSG_ACTIVE)) {
-                if (action.equals(Constant.MSG_MTC_CLEAR)) {
-                    if (!ClearProcess.getInstance(context).getBusy()) {
-                        int mode = intent.getIntExtra("mode", 1);
-                        if (mode == 0) {
-                            ClearProcess.getInstance(context).clearManage(0, null);
+                switch (action) {
+                    case Constant.MSG_MTC_CLEAR -> {
+                        if (!ClearProcess.getInstance(context).getBusy()) {
+                            int mode = intent.getIntExtra("mode", 1);
+                            if (mode == 0) {
+                                ClearProcess.getInstance(context).clearManage(0, null);
+                                return;
+                            }
+                            context.sendBroadcastAsUser(new Intent(Constant.MSG_MTC_SPEEDSTART),
+                                UserHandle.CURRENT_OR_SELF);
+                            ClearProcess.getInstance(context)
+                                .clearManage(1, MicrontekServiceBase.GPSPKNAME);
+                            context.sendBroadcastAsUser(new Intent(Constant.MSG_MTC_SPEEDEND),
+                                UserHandle.CURRENT_OR_SELF);
+                        }
+                    }
+                    case Constant.MSG_MTC_CLOSEPACKAGE -> {
+                        if (!intent.hasExtra("package")
+                            || (pkgName = intent.getStringExtra("package")) == null
+                            || pkgName.isEmpty()) {
                             return;
                         }
-                        context.sendBroadcastAsUser(new Intent(Constant.MSG_MTC_SPEEDSTART), UserHandle.CURRENT_OR_SELF);
-                        ClearProcess.getInstance(context).clearManage(1, MicrontekServiceBase.GPSPKNAME);
-                        context.sendBroadcastAsUser(new Intent(Constant.MSG_MTC_SPEEDEND), UserHandle.CURRENT_OR_SELF);
-                    }
-                } else if (action.equals(Constant.MSG_MTC_CLOSEPACKAGE)) {
-                    if (!intent.hasExtra("package") || (pkname = intent.getStringExtra("package")) == null || "".equals(pkname)) {
-                        return;
-                    }
-                    if (pkname.equals(Constant.RADIOPACKAGE) || pkname.equals(Constant.DVDPACKAGE) || pkname.equals(Constant.MUSICPACKAGE) || pkname.equals(Constant.IPODPACKAGE) || pkname.equals(Constant.USBIPODPACKAGE) || pkname.equals(Constant.TVPACKAGE) || pkname.equals(Constant.PHOTOPACKAGE) || pkname.equals(Constant.MOVIEPACKAGE) || pkname.equals(Constant.BTPACKAGE) || pkname.equals(Constant.BTMUSICPACKAGE) || pkname.equals(Constant.RECPACKAGE) || pkname.equals(Constant.WEATHERPACKAGE)) {
-                        if (!HctUtil.CheckIsRun(context, pkname)) {
-                            return;
+                        if (pkgName.equals(Constant.RADIOPACKAGE) || pkgName.equals(
+                            Constant.DVDPACKAGE) || pkgName.equals(Constant.MUSICPACKAGE)
+                            || pkgName.equals(Constant.IPODPACKAGE) || pkgName.equals(
+                            Constant.USBIPODPACKAGE) || pkgName.equals(Constant.TVPACKAGE)
+                            || pkgName.equals(Constant.PHOTOPACKAGE) || pkgName.equals(
+                            Constant.MOVIEPACKAGE) || pkgName.equals(Constant.BTPACKAGE)
+                            || pkgName.equals(Constant.BTMUSICPACKAGE) || pkgName.equals(
+                            Constant.RECPACKAGE) || pkgName.equals(Constant.WEATHERPACKAGE)) {
+                            if (!HctUtil.isAppRunning(context, pkgName)) {
+                                return;
+                            }
+                            if (pkgName.equals(Constant.BTPACKAGE)
+                                && !HctUtil.getTopActivityClassName(context)
+                                .equals(Constant.BTMUSICCLASS2)) {
+                                startHome();
+                            }
+                            sendBootCheck(getApplicationContext(), "android.microntek.service");
+                        } else if (pkgName.equals(AppManager.packageNameCARPLAY[0])) {
+                            getApplicationContext().sendBroadcastAsUser(
+                                new Intent("carplay.apk.close"), UserHandle.ALL);
+                        } else {
+                            ClearProcess.getInstance(context).closePackage(pkgName);
                         }
-                        if (pkname.equals(Constant.BTPACKAGE) && !HctUtil.getTopActivityClassName(context).equals(Constant.BTMUSICCLASS2)) {
-                            MicrontekServer.this.startHome();
+                    }
+                    case Constant.MSG_START_RADIO -> {
+                        if (!HctUtil.isAppRunning(context, Constant.RADIOPACKAGE)) {
+                            startRadio(2);
                         }
-                        MicrontekServer microntekServer3 = MicrontekServer.this;
-                        microntekServer3.sendBootCheck(microntekServer3.mContext, "android.microntek.service");
-                    } else if (pkname.equals(AppManager.packageNameCARPLAY[0])) {
-                        MicrontekServer.this.mContext.sendBroadcastAsUser(new Intent("carplay.apk.close"), UserHandle.ALL);
-                    } else {
-                        ClearProcess.getInstance(context).closePackage(pkname);
                     }
-                } else if (action.equals(Constant.MSG_START_RADIO)) {
-                    if (!HctUtil.CheckIsRun(context, Constant.RADIOPACKAGE)) {
-                        MicrontekServer.this.startRadio(2);
-                    }
-                } else if (action.equals(Constant.MSG_START_MUSIC)) {
-                    int mediaapp = MicrontekServer.this.getmediaAppflag();
-                    if (mediaapp != 1) {
-                        MicrontekServer.this.startMusic(null, 2);
-                    }
-                } else if (action.equals(Constant.MSG_START_IPOD)) {
-                    if (MicrontekServer.this.mUsbIpodSupport) {
-                        if (MicrontekServer.this.mUsbIpod && !HctUtil.CheckIsRun(context, Constant.USBIPODPACKAGE)) {
-                            MicrontekServer.this.startUsbIpod(2);
+                    case Constant.MSG_START_MUSIC -> {
+                        if (getMediaAppflag() != 1) {
+                            startMusic(null, 2);
                         }
-                    } else if (!HctUtil.CheckIsRun(context, Constant.IPODPACKAGE)) {
-                        MicrontekServer.this.startIpod(2);
                     }
-                } else {
-                    action.equals(Constant.MSG_START_BTMUSIC);
+                    case Constant.MSG_START_IPOD -> {
+                        if (mUsbIpodSupport) {
+                            if (mUsbIpod && !HctUtil.isAppRunning(context,
+                                Constant.USBIPODPACKAGE)) {
+                                startUsbIpod(2);
+                            }
+                        } else if (!HctUtil.isAppRunning(context, Constant.IPODPACKAGE)) {
+                            startIpod(2);
+                        }
+                    }
+                    default -> action.equals(Constant.MSG_START_BTMUSIC);
                 }
             }
         }
     };
-    private BroadcastReceiver MTCploy = new BroadcastReceiver() { // from class: android.microntek.service.MicrontekServer.20
-        @Override // android.content.BroadcastReceiver
+
+    private final BroadcastReceiver MTCploy = new BroadcastReceiver() {
+        @Override
         public void onReceive(Context context, Intent intent) {
             String cmd;
             String action = intent.getAction();
             if (action.equals(Constant.BROADCAST_BT_REPORT)) {
                 if (intent.hasExtra(Constant.MSG_BT_SRV_CONNECT_STATE)) {
-                    int btstate = intent.getIntExtra(Constant.MSG_BT_SRV_CONNECT_STATE, 0);
-                    if (btstate == 2 || btstate == 3 || btstate == 5) {
-                        if (btstate == 2) {
-                            MicrontekServer.this.setParameters("av_phone=out");
-                        } else if (btstate == 3) {
-                            MicrontekServer.this.setParameters("av_phone=in");
+                    int btState = intent.getIntExtra(Constant.MSG_BT_SRV_CONNECT_STATE, 0);
+                    if (btState == 2 || btState == 3 || btState == 5) {
+                        if (btState == 2) {
+                            setParameters("av_phone=out");
+                        } else if (btState == 3) {
+                            setParameters("av_phone=in");
                         } else {
-                            MicrontekServer.this.setParameters("av_phone=answer");
+                            setParameters("av_phone=answer");
                         }
                         if (!MicrontekServiceBase.btLock) {
                             MicrontekServiceBase.btLock = true;
-                            MicrontekServer.this.sendBootCheck(context, "phonecallin");
-                            MicrontekServer.this.MTCAdjVolume(2);
+                            sendBootCheck(context, "phonecallin");
+                            MTCAdjVolume(2);
                             context.sendBroadcastAsUser(new Intent(Constant.MSG_ACTIVE), UserHandle.CURRENT_OR_SELF);
                         }
                     } else if (MicrontekServiceBase.btLock) {
                         MicrontekServiceBase.btLock = false;
-                        MicrontekServer.this.setParameters("av_phone=hangup");
-                        MicrontekServer.this.sendBootCheck(context, "phonecallout");
-                        MicrontekServer.this.MTCAdjVolume(2);
-                        if (!MicrontekServiceBase.btLock && !MicrontekServer.this.mBackviewState && MicrontekServer.this.isPowerScreen) {
-                            MicrontekServer.this.updataPowerScreen(true);
+                        setParameters("av_phone=hangup");
+                        sendBootCheck(context, "phonecallout");
+                        MTCAdjVolume(2);
+                        if (!MicrontekServiceBase.btLock && !backviewState && isPowerScreen) {
+                            updatePowerScreen(true);
                         }
                     }
                 }
             } else if (action.equals(Constant.MSG_ACTION_APP_TITLE)) {
                 String packageName = intent.getStringExtra("pkname");
-                if ("YH".equals(MicrontekServer.this.mCustomer)) {
-                    MicrontekServer.this.mHandler.removeMessages(21);
-                    if (Constant.BTPACKAGE.equals(packageName)) {
-                        MicrontekServer.this.mHandler.sendEmptyMessageDelayed(21, 30000L);
-                    } else {
-                        MicrontekServer.this.mHandler.sendEmptyMessageDelayed(21, 30000L);
-                    }
-                }
                 if (packageName.equals(Constant.BACKVIEWPACKAGE) || packageName.equals(Constant.FRONTVIEWPACKAGE)) {
-                    MicrontekServer.this.isYoutube = false;
+                    isYoutube = false;
                 }
-                MicrontekServiceBase.GPSPKNAME = Settings.System.getString(MicrontekServer.this.getContentResolver(), "gpspkname");
+                MicrontekServiceBase.GPSPKNAME = Settings.System.getString(getContentResolver(), "gpspkname");
                 if ("0".equals(SystemProperties.get("ro.product.rotatemode")) && "true".equals(SystemProperties.get("ro.product.rotate"))) {
                     if (TextUtils.isEmpty(packageName) || !packageName.startsWith("com.android.launcher")) {
-                        MicrontekServer.this.launcherflag = false;
+                        launcherFlag = false;
                     } else {
-                        MicrontekServer.this.launcherflag = true;
-                        if (MicrontekServer.this.updateLauncher) {
-                            MicrontekServer microntekServer = MicrontekServer.this;
-                            microntekServer.setDefaultLauncher(microntekServer.mPackageName, MicrontekServer.this.mClassName);
-                            MicrontekServer.this.startHome();
-                            MicrontekServer.this.updateLauncher = false;
+                        launcherFlag = true;
+                        if (updateLauncher) {
+                            setDefaultLauncher(mPackageName, mClassName);
+                            startHome();
+                            updateLauncher = false;
                         }
                     }
                 }
                 if (!TextUtils.isEmpty(MicrontekServiceBase.GPSPKNAME) && MicrontekServiceBase.GPSPKNAME.equals(packageName)) {
-                    MicrontekServiceBase.gps_open = true;
-                    MicrontekServiceBase.gps_isfront = true;
-                    MicrontekServer.this.mHandler.sendEmptyMessage(1);
+                    MicrontekServiceBase.gpsOpen = true;
+                    MicrontekServiceBase.gpsIsFront = true;
+                    handler.sendEmptyMessage(MSG_GPS_TOP);
                 } else if (packageName.equals("com.google.android.youtube")) {
-                    if (MicrontekServer.this.mCustomerSub.startsWith("ASUKA")) {
-                        if (!MicrontekServer.this.isYoutube) {
-                            MicrontekServer.this.mCarManager.setParameters("ctl_key=257");
-                        }
-                        MicrontekServer.this.isYoutube = true;
-                    }
                     Intent it1 = new Intent(Constant.MSG_MTC_BOOTCHECK);
                     it1.putExtra("class", "toutube");
                     context.sendBroadcastAsUser(it1, UserHandle.CURRENT_OR_SELF);
-                    MicrontekServer.this.setParameters("av_channel_enter=sys");
-                    MicrontekServer microntekServer2 = MicrontekServer.this;
-                    if (microntekServer2.isHZC(microntekServer2.mCustomerSub) && MicrontekServer.this.isHandbrake) {
-                        String asd = MicrontekServer.this.getResources().getString(R.string.vedio_warning);
-                        MicrontekServer.this.MyToast(asd);
-                    }
-                } else if (packageName.equals("com.microntek.instructionsvideo")) {
-                    MicrontekServer microntekServer3 = MicrontekServer.this;
-                    if (microntekServer3.isHZC(microntekServer3.mCustomerSub) && MicrontekServer.this.isHandbrake) {
-                        String asd2 = MicrontekServer.this.getResources().getString(R.string.vedio_warning);
-                        ClearProcess.getInstance(MicrontekServer.this.mContext).closePackage("com.microntek.instructionsvideo");
-                        MicrontekServer.this.MyToast(asd2);
-                    }
+                    setParameters("av_channel_enter=sys");
                 } else if (packageName.equals("com.netflix.mediaclient")) {
-                    MicrontekServer.this.mNetflixState = true;
+                    netflixState = true;
                 } else if (packageName.equals("com.youku.phone")) {
-                    MicrontekServer.this.focusRequest();
+                    focusRequest();
                 } else if (packageName.equals(Constant.CLOCKSCREENPACKAGE)) {
-                    if (!TextUtils.isEmpty(MicrontekServer.this.mCustomerSub) && "SYCH".equals(MicrontekServer.this.mCustomer)) {
-                        MicrontekServer.this.mNetflixState = true;
+                    if (!TextUtils.isEmpty(customerSub) && "SYCH".equals(customer)) {
+                        netflixState = true;
                     }
-                } else if ((!packageName.equals(Constant.BACKVIEWPACKAGE) && !packageName.equals(Constant.FRONTVIEWPACKAGE)) || !MicrontekServiceBase.gps_isfront) {
-                    MicrontekServer.this.mAppMode = -1;
-                    MicrontekServiceBase.gps_isfront = false;
-                    MicrontekServer.this.mNetflixState = false;
-                    MicrontekServer.this.mHandler.removeMessages(2);
-                    MicrontekServer.this.mHandler.sendEmptyMessageDelayed(2, 1000L);
+                } else if ((!packageName.equals(Constant.BACKVIEWPACKAGE) && !packageName.equals(Constant.FRONTVIEWPACKAGE)) || !MicrontekServiceBase.gpsIsFront) {
+                    appMode = -1;
+                    MicrontekServiceBase.gpsIsFront = false;
+                    netflixState = false;
+                    handler.removeMessages(MSG_GPS_BACK);
+                    handler.sendEmptyMessageDelayed(MSG_GPS_BACK, 1_000L);
                 }
-                MicrontekServer.this.isScreenlock = packageName.equals(Constant.CLOCKSCREENPACKAGE);
-                if (MicrontekServer.this.mBackviewState && !packageName.equals(Constant.BACKVIEWPACKAGE)) {
-                    MicrontekServer.this.startBackView();
+                isScreenlock = packageName.equals(Constant.CLOCKSCREENPACKAGE);
+                if (backviewState && !packageName.equals(Constant.BACKVIEWPACKAGE)) {
+                    startBackView();
                 }
-                if (!MicrontekServiceBase.btLock && !MicrontekServer.this.mBackviewState && MicrontekServer.this.isPowerScreen) {
-                    MicrontekServer.this.updataPowerScreen(true);
+                if (!MicrontekServiceBase.btLock && !backviewState && isPowerScreen) {
+                    updatePowerScreen(true);
                 }
-                MicrontekServer.this.mHandler.removeMessages(22);
-                MicrontekServer.this.mHandler.sendEmptyMessageDelayed(22, 800L);
-                MicrontekServer.this.mHandler.sendEmptyMessageDelayed(22, 2000L);
-                if (MicrontekServer.this.isCarBox) {
-                    MicrontekServer.this.saveCarBoxData(packageName);
-                }
-            } else if (action.equals(Constant.MSG_MTC_POWER_OFFDONE)) {
-                if (MicrontekServer.this.mCustomerSub.equals("HZC4")) {
-                    MicrontekServer.this.setParameters("rpt_power=false");
-                    ClearProcess.getInstance(MicrontekServer.this.mContext).clearManage(0, null);
+                handler.removeMessages(MSG_AV_REFRESH);
+                handler.sendEmptyMessageDelayed(MSG_AV_REFRESH, 800L);
+                handler.sendEmptyMessageDelayed(MSG_AV_REFRESH, 2_000L);
+                if (isCarBox) {
+                    saveCarBoxData(packageName);
                 }
             } else if (action.equals("com.microntek.request.event")) {
                 String type = intent.getStringExtra("type");
                 if (!TextUtils.isEmpty(type)) {
                     if (type.contains("handbrake")) {
-                        MicrontekServer.this.UpdataHandBrake();
+                        updateHandbrake();
                     }
                     if (type.contains("headlight")) {
-                        MicrontekServer.this.UpdataHeadLight();
+                        updateHeadlight();
                     }
                     if (type.contains("backview")) {
-                        MicrontekServer.this.UpdataBackView();
+                        updateBackview();
                     }
                     if (type.contains("power")) {
-                        MicrontekServer microntekServer4 = MicrontekServer.this;
-                        microntekServer4.ReportEvent("power", microntekServer4.mPowerState);
+                        reportEvent("power", powerState);
                     }
                     if (type.contains("volume")) {
-                        MicrontekServer.this.SendVolStatus(MicrontekServiceBase.mCurVolume);
+                        sendVolStatus(MicrontekServiceBase.mCurVolume);
                     }
                     if (type.contains("reardiaplay")) {
                         HCTApi.switchDualScreen();
                     }
                 }
             } else if (action.equals(Constant.MSG_MTC_DARKLIGHT)) {
-                String state = MicrontekServer.this.getParameters("sta_ill=");
+                String state = getParameters("sta_ill=");
                 Intent intent2 = new Intent(Constant.STATECAR_LIGHT);
                 intent2.putExtra("state", state);
-                MicrontekServer.this.sendBroadcastAsUser(intent2, UserHandle.CURRENT_OR_SELF);
+                sendBroadcastAsUser(intent2, UserHandle.CURRENT_OR_SELF);
             } else if (action.equals(Constant.MSG_ACTION_HCTREBOOT)) {
-                MicrontekServer.this.powerReboot();
+                powerReboot();
             } else if (action.equals(Constant.GPSCHANGE)) {
-                String pkname = intent.getStringExtra("pkname");
-                if (pkname == null) {
+                String pkgName = intent.getStringExtra("pkname");
+                if (pkgName == null) {
                     return;
                 }
-                MicrontekServer.this.mCarManager.putState("navi_package", MicrontekServiceBase.GPSPKNAME);
-                Settings.System.putString(context.getContentResolver(), "gpspkname", pkname);
+                carManager.putState("navi_package", MicrontekServiceBase.GPSPKNAME);
+                Settings.System.putString(context.getContentResolver(), "gpspkname", pkgName);
             } else if (action.equals(AppManager.packageNameCARPLAY[0]) || action.equals(AppManager.packageNameCARPLAY[1]) || action.equals(AppManager.packageNameHICAR[0])) {
                 if (intent.hasExtra("status")) {
                     String status = intent.getStringExtra("status");
@@ -892,19 +860,19 @@ public class MicrontekServer extends MicrontekServiceBase {
                     }
                     Log.i("carplay", "Status:" + status);
                     if (status.equals("MAIN_PAGE_SHOW")) {
-                        MicrontekServiceBase.bCarPlayShow = true;
+                        MicrontekServiceBase.carPlayShow = true;
                     } else if (status.equals("MAIN_PAGE_HIDDEN")) {
-                        MicrontekServiceBase.bCarPlayShow = false;
+                        MicrontekServiceBase.carPlayShow = false;
                     }
                 } else if (!intent.hasExtra("command") || (cmd = intent.getStringExtra("command")) == null) {
                 } else {
                     Log.i("carplay", "command:" + cmd);
-                    if (cmd != null && cmd.equals("RES_APK_INFO") && intent.getStringExtra("regmode").contains("w")) {
+                    if (cmd.equals("RES_APK_INFO") && intent.getStringExtra("regmode")
+                        .contains("w")) {
                         AppManager.getInstance(context).setUsbIpodEnabled(false);
-                        if ("HZC".equals(MicrontekServer.this.mCustomer) && intent.getStringExtra("regmode").contains("a")) {
-                            AppManager.getInstance(context).setEasyConnEnabled(false);
-                        }
-                    } else if (cmd != null && cmd.equals("RES_APK_INFO") && intent.getStringExtra("regmode").contains("l") && "HZC".equals(MicrontekServer.this.mCustomer) && intent.getStringExtra("regmode").contains("a")) {
+                    } else if (cmd.equals("RES_APK_INFO") && intent.getStringExtra("regmode")
+                        .contains("l") && "HZC".equals(
+                        customer) && intent.getStringExtra("regmode").contains("a")) {
                         AppManager.getInstance(context).setEasyConnEnabled(false);
                     }
                 }
@@ -912,11 +880,12 @@ public class MicrontekServer extends MicrontekServiceBase {
                 AppManager.getInstance(context).setUsbIpodEnabled(false);
             } else if (action.equals("com.microntek.CarManager.event")) {
                 String parameter = intent.getStringExtra("parameter");
-                MicrontekServer.this.mCarManager.setParameters(parameter);
+                carManager.setParameters(parameter);
             }
         }
     };
-    private AudioManager.OnAudioFocusChangeListener mAudioFocusListener = new AudioManager.OnAudioFocusChangeListener() { // from class: android.microntek.service.MicrontekServer.21
+
+    private AudioManager.OnAudioFocusChangeListener audioFocusListener = new AudioManager.OnAudioFocusChangeListener() { // from class: android.microntek.service.MicrontekServer.21
         @Override // android.media.AudioManager.OnAudioFocusChangeListener
         public void onAudioFocusChange(int focusChange) {
         }
@@ -988,11 +957,11 @@ public class MicrontekServer extends MicrontekServiceBase {
     public void onCreate() {
         super.onCreate();
         this.mPm = getPackageManager();
-        this.mCarManager.attach(new Handler() { // from class: android.microntek.service.MicrontekServer.3
+        this.carManager.attach(new Handler() { // from class: android.microntek.service.MicrontekServer.3
             @Override // android.os.Handler
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
-                MicrontekServer.this.s_onStatusChanged((String) msg.obj, msg.getData());
+                s_onStatusChanged((String) msg.obj, msg.getData());
             }
         }, "CarEvent,CarPower,KeyDown,CarApp,CarBox");
         this.onCraeteTime = System.currentTimeMillis();
@@ -1000,7 +969,7 @@ public class MicrontekServer extends MicrontekServiceBase {
         InitSystemData();
         InitIntentFilter();
         this.mAppOpsManager = (AppOpsManager) getSystemService("appops");
-        if (1 == Settings.Global.getInt(this.mContext.getContentResolver(), "airplane_mode_on", 0)) {
+        if (1 == Settings.Global.getInt(this.getApplicationContext().getContentResolver(), "airplane_mode_on", 0)) {
             setAirplaneModeOn(false);
         }
         if ("XLY".equals(HctUtil.getCustomerSub()) || "HZC29".equals(HctUtil.getCustomerSub())) {
@@ -1009,8 +978,8 @@ public class MicrontekServer extends MicrontekServiceBase {
         if ("XLY".equals(HctUtil.getCustomerSub()) && Settings.System.getInt(getContentResolver(), "XLYPersianCale", 2) == 2) {
             Settings.System.putInt(getContentResolver(), "XLYPersianCale", 1);
         }
-        this.mHandler.removeMessages(21);
-        this.mHandler.sendEmptyMessageDelayed(21, 30000L);
+        this.handler.removeMessages(21);
+        this.handler.sendEmptyMessageDelayed(21, 30000L);
         if (this.isCarBox) {
             List<ComponentName> appList = fetchAutoApps();
             for (ComponentName componentName : appList) {
@@ -1045,8 +1014,8 @@ public class MicrontekServer extends MicrontekServiceBase {
             startActivity(intent);
             collapsingNotification(getApplicationContext());
         } catch (Exception e) {
-            this.mHandler.removeMessages(21);
-            this.mHandler.sendEmptyMessageDelayed(21, 30000L);
+            this.handler.removeMessages(21);
+            this.handler.sendEmptyMessageDelayed(21, 30000L);
         }
     }
 
@@ -1071,26 +1040,26 @@ public class MicrontekServer extends MicrontekServiceBase {
     }
 
     private void InitData() {
-        if (this.mCarManager != null) {
-            String powerstate = this.mCarManager.getStringState("carpower");
+        if (this.carManager != null) {
+            String powerstate = this.carManager.getStringState("carpower");
             DoCarPower(powerstate);
-            this.mBackviewState = this.mCarManager.getBooleanState("backview");
-            UpdataBackView();
-            this.mHandbrake = this.mCarManager.getBooleanState("handbrake");
-            UpdataHandBrake();
-            this.mHeadlight = this.mCarManager.getBooleanState("headlight");
-            UpdataHeadLight();
-            this.mAjx = this.mCarManager.getBooleanState("ajx");
+            this.backviewState = this.carManager.getBooleanState("backview");
+            updateBackview();
+            this.mHandbrake = this.carManager.getBooleanState("handbrake");
+            updateHandbrake();
+            this.mHeadlight = this.carManager.getBooleanState("headlight");
+            updateHeadlight();
+            this.mAjx = this.carManager.getBooleanState("ajx");
             UpdataAjx();
-            this.mOrientation = this.mCarManager.getIntState("orientation");
+            this.mOrientation = this.carManager.getIntState("orientation");
             UpdataOrientation(false);
-            updataPowerScreen(false);
-            boolean startApp = this.mCarManager.getBooleanState("carstartapp");
+            updatePowerScreen(false);
+            boolean startApp = this.carManager.getBooleanState("carstartapp");
             if (startApp) {
                 NeedStartApp();
             }
         }
-        this.mMfiManager.registerListener(this.mListener);
+        this.mMfiManager.registerListener(this.mfiListener);
     }
 
     private void NeedStartApp() {
@@ -1098,7 +1067,7 @@ public class MicrontekServer extends MicrontekServiceBase {
             return;
         }
         this.isBoxStartApp = true;
-        if (this.mBackviewState) {
+        if (this.backviewState) {
             mNeedStartApp = true;
         } else {
             MtcStartApp();
@@ -1106,23 +1075,23 @@ public class MicrontekServer extends MicrontekServiceBase {
     }
 
     private void InitSystemData() {
-        this.mHandler.sendEmptyMessageDelayed(3, 15000L);
+        this.handler.sendEmptyMessageDelayed(3, 15000L);
         String enscreenclock = GetSystemProperties("ro.product.screenclock");
         if (enscreenclock.equals("true") || getParameters("sta_function=18").equals("1") || Settings.System.getInt(getContentResolver(), "screenState", 0) == 1) {
-            this.ScreenSaverEnableLocal = true;
-            this.ScreenSaverEnable = true;
-            this.ScreenSaverTimeOut = Settings.System.getInt(getContentResolver(), "musicscreen_timeout", 30);
+            this.screensaverEnableLocal = true;
+            this.screensaverEnable = true;
+            this.screensaverTimeout = Settings.System.getInt(getContentResolver(), "musicscreen_timeout", 30);
         }
-        this.mHandler.sendEmptyMessageDelayed(0, 1000L);
+        this.handler.sendEmptyMessageDelayed(0, 1000L);
         this.noDVD = getParameters("cfg_dvd=").equals("0");
-        TelephonyManager tm = (TelephonyManager) getSystemService("phone");
-        tm.listen(this.phoneListener, 32);
+        TelephonyManager tm = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        tm.listen(phoneListener, 32);
         initGps();
         if ("HZC".equals(HctUtil.getCustomerSub()) || "HZC24".equals(HctUtil.getCustomerSub())) {
             Settings.System.putInt(getContentResolver(), "PowerOnIsShowPasswordView", 1);
         }
         if ("HZC41".equals(HctUtil.getCustomerSub())) {
-            Settings.System.putInt(this.mContext.getContentResolver(), "LauncherPauseState", 0);
+            Settings.System.putInt(this.getApplicationContext().getContentResolver(), "LauncherPauseState", 0);
         }
     }
 
@@ -1134,7 +1103,7 @@ public class MicrontekServer extends MicrontekServiceBase {
         if (TextUtils.isEmpty(GPSPKNAME)) {
             GPSPKNAME = "";
         }
-        this.mCarManager.putState("navi_package", GPSPKNAME);
+        this.carManager.putState("navi_package", GPSPKNAME);
         String gpsstrString = Settings.System.getString(getContentResolver(), Constant.MTCGPSMONITOR);
         if (TextUtils.isEmpty(gpsstrString)) {
             gpsstrString = "on";
@@ -1158,30 +1127,31 @@ public class MicrontekServer extends MicrontekServiceBase {
     }
 
     private void TickTask() {
-        if (this.ScreenSaverEnableLocal) {
-            this.ScreenSaverTimeOut = Settings.System.getInt(getContentResolver(), "musicscreen_timeout", 30);
+        if (this.screensaverEnableLocal) {
+            this.screensaverTimeout = Settings.System.getInt(getContentResolver(), "musicscreen_timeout", 30);
         }
-        if (btLock || gps_isfront || this.mBackviewState || this.mPowerState != 2 || this.ScreenSaverTimeOut <= 0 || !this.ScreenSaverEnable) {
-            this.ScreenSaverTimer = 0;
+        if (btLock || gpsIsFront
+            || this.backviewState || this.powerState != 2 || this.screensaverTimeout <= 0 || !this.screensaverEnable) {
+            this.screensaverTimer = 0;
         }
-        int i = this.ScreenSaverTimer;
+        int i = this.screensaverTimer;
         if (i == 0) {
-            if (this.ScreenSaverTimeOut > 0) {
+            if (this.screensaverTimeout > 0) {
                 sendBroadcastAsUser(new Intent(Constant.CLOCKEND), UserHandle.CURRENT_OR_SELF);
             }
             this.ScreenSaverOn = false;
-        } else if (!this.ScreenSaverOn && i >= this.ScreenSaverTimeOut) {
+        } else if (!this.ScreenSaverOn && i >= this.screensaverTimeout) {
             this.ScreenSaverOn = true;
-            if (this.ScreenSaverEnableLocal) {
+            if (this.screensaverEnableLocal) {
                 startMusicClock();
             } else {
                 Intent it1 = new Intent(Constant.MSG_MTC_SCREENSAVER);
-                it1.putExtra("timer", this.ScreenSaverTimer);
+                it1.putExtra("timer", this.screensaverTimer);
                 sendBroadcastAsUser(it1, UserHandle.CURRENT_OR_SELF);
             }
         }
-        this.ScreenSaverTimer++;
-        this.mHandler.sendEmptyMessageDelayed(0, 1000L);
+        this.screensaverTimer++;
+        this.handler.sendEmptyMessageDelayed(0, 1000L);
         Intent it = new Intent(Constant.MSG_MTC_TIME_FRESH);
         it.addFlags(268435456);
         sendBroadcastAsUser(it, UserHandle.CURRENT_OR_SELF);
@@ -1189,9 +1159,9 @@ public class MicrontekServer extends MicrontekServiceBase {
 
     private void clearMusicClock() {
         int musicTimeout = Settings.System.getInt(getContentResolver(), "musicscreen_timeout", 30);
-        this.mHandler.removeMessages(4);
+        handler.removeMessages(MSG_MUSIC_CLOCK);
         if (musicTimeout != -1) {
-            this.ScreenSaverTimer = 0;
+            screensaverTimer = 0;
         }
     }
 
@@ -1201,7 +1171,7 @@ public class MicrontekServer extends MicrontekServiceBase {
         itfl.addAction("android.intent.action.MEDIA_EJECT");
         itfl.addAction("android.intent.action.MEDIA_UNMOUNTED");
         itfl.addDataScheme("file");
-        registerReceiver(this.MediaDetectReceiver, itfl);
+        registerReceiver(this.mediaDetectReceiver, itfl);
         IntentFilter itfl2 = new IntentFilter();
         itfl2.addAction(Constant.MSG_BEEP);
         itfl2.addAction(Constant.MSG_SHOW_VOLUME);
@@ -1237,26 +1207,26 @@ public class MicrontekServer extends MicrontekServiceBase {
         itfl4.addAction("android.net.wifi.WIFI_STATE_CHANGED");
         itfl4.addAction("android.net.wifi.WIFI_AP_STATE_CHANGED");
         itfl4.addAction("android.net.wifi.supplicant.STATE_CHANGE");
-        registerReceiver(this.mWifiReceiver, itfl4);
+        registerReceiver(this.wifiReceiver, itfl4);
         IntentFilter itfl5 = new IntentFilter();
         itfl5.addAction(Constant.MSG_INSTALL_XRROSS);
-        registerReceiver(this.mInstallApkReceiver, itfl5);
+        registerReceiver(this.installApkReceiver, itfl5);
         IntentFilter itfl6 = new IntentFilter();
         itfl6.addAction(Constant.ACTION_PLUGGED);
         itfl6.addAction("com.microntek.extshow.start");
-        registerReceiver(this.mHdmiReceiver, itfl6);
+        registerReceiver(this.hdmiReceiver, itfl6);
         IntentFilter itfl7 = new IntentFilter();
         itfl7.addAction("android.intent.action.PACKAGE_ADDED");
         itfl7.addAction("android.intent.action.PACKAGE_REMOVED");
         itfl7.addAction("android.intent.action.PACKAGE_CHANGED");
         itfl7.addDataScheme("package");
-        registerReceiver(this.mInstallReceiver, itfl7);
+        registerReceiver(this.installReceiver, itfl7);
         IntentFilter itfl8 = new IntentFilter();
         itfl8.addAction("android.intent.action.NEW_OUTGOING_CALL");
         registerReceiver(this.phoneReceiver, itfl8);
         IntentFilter itfl9 = new IntentFilter();
         itfl9.addAction("android.intent.action.LOCALE_CHANGED");
-        registerReceiver(this.mLocaleReceiver, itfl9);
+        registerReceiver(this.localeReceiver, itfl9);
         IntentFilter myFilter = new IntentFilter();
         myFilter.addAction("changescreenclock");
         registerReceiver(this.screenClockBroadcast, myFilter);
@@ -1279,18 +1249,18 @@ public class MicrontekServer extends MicrontekServiceBase {
 
     @Override // android.microntek.service.MicrontekServiceBase, android.app.Service
     public void onDestroy() {
-        this.mMfiManager.unregisterListener(this.mListener);
-        this.mCarManager.detach();
-        this.mHandler.removeCallbacksAndMessages(null);
-        unregisterReceiver(this.MediaDetectReceiver);
+        this.mMfiManager.unregisterListener(this.mfiListener);
+        this.carManager.detach();
+        this.handler.removeCallbacksAndMessages(null);
+        unregisterReceiver(this.mediaDetectReceiver);
         unregisterReceiver(this.MTCAPPProc);
         unregisterReceiver(this.MTCploy);
-        unregisterReceiver(this.mWifiReceiver);
-        unregisterReceiver(this.mInstallApkReceiver);
-        unregisterReceiver(this.mHdmiReceiver);
-        unregisterReceiver(this.mInstallReceiver);
+        unregisterReceiver(this.wifiReceiver);
+        unregisterReceiver(this.installApkReceiver);
+        unregisterReceiver(this.hdmiReceiver);
+        unregisterReceiver(this.installReceiver);
         unregisterReceiver(this.phoneReceiver);
-        unregisterReceiver(this.mLocaleReceiver);
+        unregisterReceiver(this.localeReceiver);
         unregisterReceiver(this.screenClockBroadcast);
         super.onDestroy();
     }
@@ -1300,19 +1270,19 @@ public class MicrontekServer extends MicrontekServiceBase {
         if ("handbrake".equals(type)) {
             this.mHandbrake = bundle.getBoolean(MicrontekServiceBase.VALUE);
             UpdataDrivingState();
-            UpdataHandBrake();
+            updateHandbrake();
         } else if ("headlight".equals(type)) {
             this.mHeadlight = bundle.getBoolean(MicrontekServiceBase.VALUE);
-            UpdataHeadLight();
+            updateHeadlight();
         } else if ("backview".equals(type)) {
-            this.mBackviewState = bundle.getBoolean(MicrontekServiceBase.VALUE);
-            UpdataBackView();
+            this.backviewState = bundle.getBoolean(MicrontekServiceBase.VALUE);
+            updateBackview();
         } else if ("ajx".equals(type)) {
             this.mAjx = bundle.getBoolean(MicrontekServiceBase.VALUE);
             UpdataAjx();
         } else if ("ipod".equals(type)) {
             boolean ipod = bundle.getBoolean(MicrontekServiceBase.VALUE);
-            if (!this.mIpod && ipod && this.mPowerState == 2 && !btLock && !this.mBackviewState) {
+            if (!this.mIpod && ipod && this.powerState == 2 && !btLock && !this.backviewState) {
                 startIpod(0);
             }
             this.mIpod = ipod;
@@ -1323,8 +1293,8 @@ public class MicrontekServer extends MicrontekServiceBase {
                 return;
             }
             clearMusicClock();
-            if ("YH".equals(this.mCustomer)) {
-                this.mHandler.removeMessages(21);
+            if ("YH".equals(this.customer)) {
+                this.handler.removeMessages(21);
             }
         } else if ("touch_up".equals(type)) {
             if (this.isPowerScreen) {
@@ -1335,26 +1305,26 @@ public class MicrontekServer extends MicrontekServiceBase {
                 sendBroadcastAsUser(new Intent(Constant.CLOCKEND), UserHandle.CURRENT_OR_SELF);
                 this.isScreenlock = false;
             }
-            if ("YH".equals(this.mCustomer)) {
-                this.mHandler.removeMessages(21);
+            if ("YH".equals(this.customer)) {
+                this.handler.removeMessages(21);
                 if (Constant.BTPACKAGE.equals(HctUtil.getTopActivityPackageName(this.mContext))) {
-                    this.mHandler.sendEmptyMessageDelayed(21, 30000L);
+                    this.handler.sendEmptyMessageDelayed(21, 30000L);
                 } else {
-                    this.mHandler.sendEmptyMessageDelayed(21, 30000L);
+                    this.handler.sendEmptyMessageDelayed(21, 30000L);
                 }
             }
         } else if ("mute".equals(type)) {
             MuteShow(bundle.getBoolean(MicrontekServiceBase.VALUE));
         } else if ("firststart".equals(type)) {
-            Settings.System.putInt(this.mContext.getContentResolver(), "hasStartApp", 1);
+            Settings.System.putInt(this.getApplicationContext().getContentResolver(), "hasStartApp", 1);
             if (!this.isCarBox) {
                 Settings.System.putString(getContentResolver(), Constant.BKPACKAGE_STRING, "");
             }
-            Settings.System.putInt(this.mContext.getContentResolver(), "canbus_updata", 1);
+            Settings.System.putInt(this.getApplicationContext().getContentResolver(), "canbus_updata", 1);
             if (this.mMcuVersion != null && this.mMcuVersion.contains("_GS_")) {
                 Settings.System.putInt(getContentResolver(), Constant.FIRSTBOOT_STRING, 128);
             }
-            if ("HZC27".equals(this.mCustomerSub)) {
+            if ("HZC27".equals(this.customerSub)) {
                 Settings.System.putInt(getContentResolver(), "isPowerOn", 0);
                 Settings.System.putInt(getContentResolver(), "isLock", 1);
             }
@@ -1368,7 +1338,7 @@ public class MicrontekServer extends MicrontekServiceBase {
             } catch (Exception e) {
             }
         } else if ("screen_onoff".equals(type)) {
-            ReportEvent(type, bundle.getBoolean(MicrontekServiceBase.VALUE));
+            reportEvent(type, bundle.getBoolean(MicrontekServiceBase.VALUE));
         } else if ("car_info".equals(type)) {
             int flag = bundle.getInt(MicrontekServiceBase.VALUE);
             if ((flag & 3) > 0) {
@@ -1380,17 +1350,17 @@ public class MicrontekServer extends MicrontekServiceBase {
         } else if ("user_touch_study".equals(type)) {
             int act = bundle.getInt(MicrontekServiceBase.VALUE);
             if (act == 1) {
-                this.mHandler.postDelayed(new Runnable() { // from class: android.microntek.service.MicrontekServer.10
+                this.handler.postDelayed(new Runnable() { // from class: android.microntek.service.MicrontekServer.10
                     @Override // java.lang.Runnable
                     public void run() {
-                        MicrontekServer.this.startTouchKeyStudy();
+                        startTouchKeyStudy();
                     }
                 }, 2000L);
             } else {
                 showToastMsg("Enter touch study", -1);
             }
         } else if ("power_screen".equals(type)) {
-            updataPowerScreen(false);
+            updatePowerScreen(false);
         }
     }
 
@@ -1399,80 +1369,80 @@ public class MicrontekServer extends MicrontekServiceBase {
             return;
         }
         if (state.equals("power_on")) {
-            if (this.mPowerState != 2) {
+            if (this.powerState != 2) {
                 powerOn();
             }
-            this.mWifiFirstRevFlag = false;
-            this.mIsFirstUpdataWifiAPState = true;
-            if (1 != this.mPowerState) {
-                this.mHandler.removeMessages(12);
-                Message msg = this.mHandler.obtainMessage();
+            this.wifiFirstRevFlag = false;
+            this.isFirstUpdateWifiAPState = true;
+            if (1 != this.powerState) {
+                this.handler.removeMessages(12);
+                Message msg = this.handler.obtainMessage();
                 msg.what = 12;
                 if (getWifiDriverState()) {
-                    this.mHandler.sendMessageDelayed(msg, this.mlPwerOnWifiApCheckDelayMillis);
+                    this.handler.sendMessageDelayed(msg, this.mlPwerOnWifiApCheckDelayMillis);
                 } else {
-                    this.mHandler.sendMessageDelayed(msg, 5000L);
+                    this.handler.sendMessageDelayed(msg, 5000L);
                 }
-                this.mUpdataingWifiAPState = true;
+                this.updatingWifiAPState = true;
             }
-            this.mPowerState = 2;
+            this.powerState = 2;
             setParameters("rpt_power=true");
-            this.mContext.sendBroadcastAsUser(new Intent("android.intent.action.SCREEN_ON"), UserHandle.ALL);
-            if ("YH".equals(this.mCustomer) && (this.durationTime - this.onCraeteTime) / 1000 > 8) {
+            this.getApplicationContext().sendBroadcastAsUser(new Intent("android.intent.action.SCREEN_ON"), UserHandle.ALL);
+            if ("YH".equals(this.customer) && (this.durationTime - this.onCraeteTime) / 1000 > 8) {
                 showYHLogoView(true);
-                this.mHandler.removeMessages(18);
-                this.mHandler.sendEmptyMessageDelayed(18, 2000L);
+                this.handler.removeMessages(18);
+                this.handler.sendEmptyMessageDelayed(18, 2000L);
             }
-            if ("XHWSBOX".equals(this.mCustomer)) {
+            if ("XHWSBOX".equals(this.customer)) {
                 Settings.System.putInt(getContentResolver(), CARTOUCH_SHOW, 0);
             }
             showBlackView(true);
         } else if (state.equals("power_off")) {
             powerOff();
-            if (this.mPowerState == 0 || -1 == this.mPowerState) {
-                this.mHandler.removeMessages(12);
-                Message msg2 = this.mHandler.obtainMessage();
+            if (this.powerState == 0 || -1 == this.powerState) {
+                this.handler.removeMessages(12);
+                Message msg2 = this.handler.obtainMessage();
                 msg2.what = 12;
                 if (getWifiDriverState()) {
-                    this.mHandler.sendMessageDelayed(msg2, this.mlPwerOnWifiApCheckDelayMillis);
+                    this.handler.sendMessageDelayed(msg2, this.mlPwerOnWifiApCheckDelayMillis);
                 } else {
-                    this.mHandler.sendMessageDelayed(msg2, 5000L);
+                    this.handler.sendMessageDelayed(msg2, 5000L);
                 }
-                this.mUpdataingWifiAPState = true;
+                this.updatingWifiAPState = true;
             }
-            this.mPowerState = 1;
+            this.powerState = 1;
             this.mlPwerOnWifiApCheckDelayMillis = 100L;
-            if (this.mCustomerSub.equals("HZC4")) {
+            if (this.customerSub.equals("HZC4")) {
                 return;
             }
         } else if (state.equals("acc_off")) {
             powerOff();
-            if (this.mPowerState != 0) {
+            if (this.powerState != 0) {
                 this.mlPwerOnWifiApCheckDelayMillis = 100L;
                 saveWifiAPState();
             }
-            this.mPowerState = 0;
-            if (this.mCustomerSub.equals("HZC4")) {
+            this.powerState = 0;
+            if (this.customerSub.equals("HZC4")) {
                 return;
             }
         } else if (state.equals("sleep")) {
             this.mlPwerOnWifiApCheckDelayMillis = 3000L;
-            this.mContext.sendBroadcastAsUser(new Intent("android.intent.action.SCREEN_OFF"), UserHandle.ALL);
+            this.getApplicationContext().sendBroadcastAsUser(new Intent("android.intent.action.SCREEN_OFF"), UserHandle.ALL);
             deviceunMountAndSleep();
-            this.mPowerState = -1;
-            if (this.mCustomerSub.equals("HZC4")) {
+            this.powerState = -1;
+            if (this.customerSub.equals("HZC4")) {
                 return;
             }
         } else {
             return;
         }
-        ReportEvent("power", this.mPowerState);
+        reportEvent("power", this.powerState);
     }
 
     private void saveWifiAPState() {
-        this.mHandler.removeMessages(12);
-        this.wifiapcheck_cnt = 20;
-        if (this.mUpdataingWifiAPState) {
+        this.handler.removeMessages(12);
+        this.wifiApCheckCount = 20;
+        if (this.updatingWifiAPState) {
             Log.d("wuwq", "saveWifiAPState: ####### mUpdataingWifiAPState = true");
         } else if (getWifiDriverState()) {
             boolean apstate = getWifiApState() == 13;
@@ -1494,31 +1464,31 @@ public class MicrontekServer extends MicrontekServiceBase {
     private void updataWifiAPState() {
         boolean apstate = Settings.System.getInt(getContentResolver(), "status_acc_off_ap_opened", 0) != 0;
         boolean wifistate = Settings.System.getInt(getContentResolver(), "status_acc_off_wifi_opened", 0) != 0;
-        int i = this.wifiapcheck_cnt;
+        int i = this.wifiApCheckCount;
         if (i > 0) {
-            this.wifiapcheck_cnt = i - 1;
+            this.wifiApCheckCount = i - 1;
             if (!apstate && !wifistate) {
-                this.mIsFirstUpdataWifiAPState = false;
-                this.mUpdataingWifiAPState = false;
+                this.isFirstUpdateWifiAPState = false;
+                this.updatingWifiAPState = false;
                 return;
             }
             if (getWifiDriverState()) {
-                if (this.mIsFirstUpdataWifiAPState && !this.mGtPlatform) {
+                if (this.isFirstUpdateWifiAPState && !this.mGtPlatform) {
                     if (apstate) {
                         setWifiApEnabled(false);
                     } else if (wifistate) {
                         setWifiOn(false);
                     }
-                    this.mIsFirstUpdataWifiAPState = false;
+                    this.isFirstUpdateWifiAPState = false;
                 } else {
                     boolean apstate2 = getWifiApState() == 13;
                     boolean wifistate2 = this.mWifiManager.isWifiEnabled();
                     if (apstate2 || wifistate2) {
-                        this.wifiapcheck_cnt = 0;
+                        this.wifiApCheckCount = 0;
                         if (wifistate) {
                             this.mWifiManager.startScan();
                         }
-                        this.mUpdataingWifiAPState = false;
+                        this.updatingWifiAPState = false;
                         return;
                     }
                 }
@@ -1528,22 +1498,22 @@ public class MicrontekServer extends MicrontekServiceBase {
             } else if (wifistate) {
                 setWifiOn(true);
             }
-            this.mHandler.removeMessages(12);
-            Message msg = this.mHandler.obtainMessage();
+            this.handler.removeMessages(12);
+            Message msg = this.handler.obtainMessage();
             msg.what = 12;
-            this.mHandler.sendMessageDelayed(msg, 1000L);
+            this.handler.sendMessageDelayed(msg, 1000L);
             return;
         }
         Log.i("wuwq", "updataWifiAPState is timeout");
-        this.mIsFirstUpdataWifiAPState = false;
-        this.mUpdataingWifiAPState = false;
+        this.isFirstUpdateWifiAPState = false;
+        this.updatingWifiAPState = false;
     }
 
     private void DoCarKeyDown(Bundle bundle) {
         String type = bundle.getString("type");
         if (type.equals("key")) {
             int keycode = bundle.getInt(MicrontekServiceBase.VALUE);
-            ReportEvent("key", keycode);
+            reportEvent("key", keycode);
             if (keycode != 273 || keycode != 281 || keycode != 519) {
                 clearMusicClock();
             }
@@ -1557,7 +1527,7 @@ public class MicrontekServer extends MicrontekServiceBase {
         if (type.equals("start_app") && !this.isPowerScreen) {
             NeedStartApp();
         } else if (type.equals("start_ipod")) {
-            if (this.mPowerState == 2 && !btLock && !this.mBackviewState && this.mIpod) {
+            if (this.powerState == 2 && !btLock && !this.backviewState && this.mIpod) {
                 startIpod(0);
             }
         } else if (type.equals("start_dvd")) {
@@ -1571,33 +1541,33 @@ public class MicrontekServer extends MicrontekServiceBase {
             boolean is = bundle.getBoolean(MicrontekServiceBase.VALUE);
             if (!this.isBoxStartApp && is) {
                 NeedStartApp();
-                Log.i("MicrontekServer", "DoCarBox start_app ");
+                Log.i(TAG, "DoCarBox start_app ");
             }
             this.isBoxStartApp = true;
         }
     }
 
-    private void UpdataBackView() {
+    private void updateBackview() {
         Intent it = new Intent(MicrontekServiceBase.REPORT_EVENT);
         it.putExtra("type", "backview");
-        it.putExtra(MicrontekServiceBase.VALUE, this.mBackviewState);
+        it.putExtra(MicrontekServiceBase.VALUE, this.backviewState);
         sendBroadcastAsUser(it, UserHandle.ALL);
-        if (this.mBackviewState) {
+        if (this.backviewState) {
             startBackView();
-        } else if (needrunnavi) {
+        } else if (needRunNavi) {
             if (isGpsCardMounted()) {
-                needrunnavi = false;
-                RunApp(GPSPKNAME);
+                needRunNavi = false;
+                runApp(GPSPKNAME);
             }
         } else if (mNeedStartApp) {
             mNeedStartApp = false;
-            needrunnavi = false;
+            needRunNavi = false;
             MtcStartApp();
         }
     }
 
     private void DoPressKeyTask(int key) {
-        if ("HZC27".equals(this.mCustomerSub) && Settings.System.getInt(getContentResolver(), "isLock", 0) > 0) {
+        if ("HZC27".equals(this.customerSub) && Settings.System.getInt(getContentResolver(), "isLock", 0) > 0) {
             return;
         }
         switch (key) {
@@ -1605,8 +1575,8 @@ public class MicrontekServer extends MicrontekServiceBase {
                 setBackOnoff();
                 return;
             case 256:
-                if (!"TELENAV".equals(this.mCustomer) || !SystemProperties.get("sys.telenav.keycode.mode.isIntercepted", "").equals("true")) {
-                    this.mHandler.sendEmptyMessage(14);
+                if (!"TELENAV".equals(this.customer) || !SystemProperties.get("sys.telenav.keycode.mode.isIntercepted", "").equals("true")) {
+                    this.handler.sendEmptyMessage(14);
                     return;
                 }
                 return;
@@ -1614,7 +1584,7 @@ public class MicrontekServer extends MicrontekServiceBase {
                 MuteSwitch();
                 return;
             case 273:
-                this.mHandler.sendEmptyMessage(11);
+                this.handler.sendEmptyMessage(11);
                 return;
             case 277:
                 if (checkLastSwitchTime()) {
@@ -1623,7 +1593,7 @@ public class MicrontekServer extends MicrontekServiceBase {
                 }
                 return;
             case 281:
-                this.mHandler.sendEmptyMessage(10);
+                this.handler.sendEmptyMessage(10);
                 return;
             case 296:
                 if (checkLastSwitchTime()) {
@@ -1671,14 +1641,14 @@ public class MicrontekServer extends MicrontekServiceBase {
                     startActivity(intent);
                     return;
                 } else if (this.mDualHomeMode == 1) {
-                    this.mHandler.sendEmptyMessage(16);
+                    this.handler.sendEmptyMessage(16);
                     return;
                 } else {
-                    this.mHandler.sendEmptyMessage(17);
+                    this.handler.sendEmptyMessage(17);
                     return;
                 }
             case 316:
-                if (!btLock && !bCarPlayShow && IsSwitchToBT()) {
+                if (!btLock && !carPlayShow && IsSwitchToBT()) {
                     startBT(1);
                     return;
                 }
@@ -1699,7 +1669,7 @@ public class MicrontekServer extends MicrontekServiceBase {
                 startSettings();
                 return;
             case 327:
-                if (!btLock && !bCarPlayShow && IsSwitchToBT()) {
+                if (!btLock && !carPlayShow && IsSwitchToBT()) {
                     startBT(1);
                     return;
                 }
@@ -1708,12 +1678,12 @@ public class MicrontekServer extends MicrontekServiceBase {
                 if ("WCX".equals(HctUtil.getCustomer()) || "WE".equals(HctUtil.getCustomerSub())) {
                     String musicName = Settings.System.getString(getContentResolver(), "music_name");
                     if (!TextUtils.isEmpty(musicName)) {
-                        RunApp(musicName);
+                        runApp(musicName);
                         return;
                     }
                     return;
-                } else if ("CHSS".equals(this.mCustomerSub) || "CHS8".equals(this.mCustomerSub)) {
-                    RunApp(getCHSSAppPkName(1));
+                } else if ("CHSS".equals(this.customerSub) || "CHS8".equals(this.customerSub)) {
+                    runApp(getCHSSAppPkName(1));
                     return;
                 } else {
                     startMusic(null, 0);
@@ -1732,7 +1702,7 @@ public class MicrontekServer extends MicrontekServiceBase {
                 if ("WE".equals(HctUtil.getCustomerSub())) {
                     String movieName = Settings.System.getString(getContentResolver(), "movie_name");
                     if (!TextUtils.isEmpty(movieName)) {
-                        RunApp(movieName);
+                        runApp(movieName);
                         return;
                     }
                     return;
@@ -1802,18 +1772,18 @@ public class MicrontekServer extends MicrontekServiceBase {
                 return;
             case 519:
                 if (!this.isPowerScreen) {
-                    if (this.mCustomerSub.equals("zst25") && this.screenOn) {
+                    if (this.customerSub.equals("zst25") && this.screenOn) {
                         MuteSwitch();
                         this.screenOn = false;
                         startHome();
                         return;
-                    } else if (this.mCustomerSub.equals("zst25") && !this.screenOn) {
+                    } else if (this.customerSub.equals("zst25") && !this.screenOn) {
                         MuteSwitch();
                         this.screenOn = true;
                         startscreenlock();
                         return;
                     } else if (checkLastSwitchTime() && !btLock && !Constant.CLOCKSCREENPACKAGE.equals(HctUtil.getTopActivityPackageName(this.mContext))) {
-                        this.ScreenSaverTimer = this.ScreenSaverTimeOut;
+                        this.screensaverTimer = this.screensaverTimeout;
                         startMusicClock();
                         return;
                     } else {
@@ -1891,19 +1861,19 @@ public class MicrontekServer extends MicrontekServiceBase {
         this.initialTime = System.currentTimeMillis();
         showFloatView(false);
         if (this.isPowerScreen) {
-            updataPowerScreen(true);
+            updatePowerScreen(true);
         }
-        this.mHandler.removeCallbacks(this.PowerLongPress);
-        this.mHandler.removeCallbacks(this.PowerOffRunnable);
-        this.mHandler.removeMessages(8);
-        this.mHandler.sendEmptyMessage(8);
-        this.mHandler.removeMessages(21);
-        this.mHandler.sendEmptyMessageDelayed(21, 30000L);
+        handler.removeCallbacks(PowerLongPress);
+        handler.removeCallbacks(powerOffRunnable);
+        this.handler.removeMessages(8);
+        this.handler.sendEmptyMessage(8);
+        this.handler.removeMessages(21);
+        this.handler.sendEmptyMessageDelayed(21, 30000L);
         GetSystemProperties("ro.product.customer");
-        if (this.mPowerState == 0 && !isGpsCardMounted()) {
+        if (this.powerState == 0 && !isGpsCardMounted()) {
             mDeviceLock = true;
-            this.mHandler.removeMessages(3);
-            this.mHandler.sendEmptyMessageDelayed(3, 15000L);
+            this.handler.removeMessages(3);
+            this.handler.sendEmptyMessageDelayed(3, 15000L);
         }
         if (btLock || simPhoneLock) {
             VOL = Constant.PHONEVOLUME;
@@ -1918,7 +1888,7 @@ public class MicrontekServer extends MicrontekServiceBase {
         } else if (mVolMaxDefault != 0) {
             Settings.System.putInt(getContentResolver(), VOL, mVolMaxDefault);
         } else if (current > (KEY_VOLMAX * 2) / 5) {
-            if (!"YH".equals(this.mCustomer)) {
+            if (!"YH".equals(this.customer)) {
                 current = (KEY_VOLMAX * 2) / 5;
             }
             Settings.System.putInt(getContentResolver(), VOL, current);
@@ -1941,44 +1911,44 @@ public class MicrontekServer extends MicrontekServiceBase {
             Intent it = new Intent(AppManager.packageNameCARPLAY[0]);
             it.addFlags(16777216);
             it.putExtra("command", "ACTION_ENTER");
-            this.mContext.sendBroadcastAsUser(it, UserHandle.ALL);
+            this.getApplicationContext().sendBroadcastAsUser(it, UserHandle.ALL);
             it.setPackage(AppManager.packageNameCARPLAY[0]);
-            this.mContext.sendBroadcastAsUser(it, UserHandle.ALL);
+            this.getApplicationContext().sendBroadcastAsUser(it, UserHandle.ALL);
         } else if ("2".equals(this.mCarPlayType)) {
             SystemProperties.set(AppManager.packageNameCARPLAY[1], "enable");
             Intent it2 = new Intent(AppManager.packageNameCARPLAY[1]);
             it2.addFlags(16777216);
             it2.putExtra("command", "ACTION_ENTER");
-            this.mContext.sendBroadcastAsUser(it2, UserHandle.ALL);
+            this.getApplicationContext().sendBroadcastAsUser(it2, UserHandle.ALL);
             it2.setPackage(AppManager.packageNameCARPLAY[1]);
-            this.mContext.sendBroadcastAsUser(it2, UserHandle.ALL);
+            this.getApplicationContext().sendBroadcastAsUser(it2, UserHandle.ALL);
         }
     }
 
     private void powerOff() {
-        this.mHandler.removeMessages(3);
-        needrunnavi = false;
+        this.handler.removeMessages(3);
+        needRunNavi = false;
         mNeedStartApp = false;
         mLastHasGpsCard = isGpsCardMounted();
-        if (this.mPowerState == 2 && !this.mCustomerSub.equals("HZC4")) {
-            this.mHandler.removeCallbacks(this.PowerLongPress);
-            this.mHandler.post(this.PowerLongPress);
+        if (this.powerState == 2 && !this.customerSub.equals("HZC4")) {
+            this.handler.removeCallbacks(this.PowerLongPress);
+            this.handler.post(this.PowerLongPress);
         }
         savePoweroffData();
         ReportCanBusDisPlay("type", "off");
-        this.mHandler.removeCallbacks(this.PowerOffRunnable);
-        this.mHandler.postDelayed(this.PowerOffRunnable, 1000L);
+        this.handler.removeCallbacks(powerOffRunnable);
+        this.handler.postDelayed(powerOffRunnable, 1000L);
         showBlackView(false);
     }
 
     private void savePoweroffData() {
-        if (this.mPowerState == 2) {
-            int state = Settings.System.getInt(this.mContext.getContentResolver(), "hasStartApp", 1);
+        if (this.powerState == 2) {
+            int state = Settings.System.getInt(this.getApplicationContext().getContentResolver(), "hasStartApp", 1);
             if (state == 1) {
-                Settings.System.putInt(this.mContext.getContentResolver(), "hasStartApp", 0);
+                Settings.System.putInt(this.getApplicationContext().getContentResolver(), "hasStartApp", 0);
                 String[] savepackage = new String[3];
                 int i = 0;
-                if (HctUtil.CheckIsRun(this.mContext, Constant.RECPACKAGE)) {
+                if (HctUtil.isAppRunning(this.mContext, Constant.RECPACKAGE)) {
                     int i2 = 0 + 1;
                     savepackage[0] = Constant.RECPACKAGE;
                     i = i2;
@@ -1990,63 +1960,63 @@ public class MicrontekServer extends MicrontekServiceBase {
                         int i3 = i + 1;
                         savepackage[i] = toppackagename;
                         String className = HctUtil.getTopActivityClassName(this.mContext);
-                        Settings.System.putString(this.mContext.getContentResolver(), Constant.ZLINKCLASS_STRING, className);
+                        Settings.System.putString(this.getApplicationContext().getContentResolver(), Constant.ZLINKCLASS_STRING, className);
                     } else if (!checkPKFilter(toppackagename)) {
                         int i4 = i + 1;
                         savepackage[i] = toppackagename;
                     }
                 } else {
-                    if (mtcpackagename.equals(Constant.BTPACKAGE) && HctUtil.CheckIsRun(this.mContext, Constant.BTMUSICPACKAGE)) {
+                    if (mtcpackagename.equals(Constant.BTPACKAGE) && HctUtil.isAppRunning(this.mContext, Constant.BTMUSICPACKAGE)) {
                         mtcpackagename = Constant.BTMUSICPACKAGE;
                     }
                     int i5 = i + 1;
                     savepackage[i] = mtcpackagename;
-                    if (gps_isfront && gps_open) {
+                    if (gpsIsFront && gpsOpen) {
                         int i6 = i5 + 1;
                         savepackage[i5] = GPSPKNAME;
                     }
                 }
-                ContentResolver contentResolver = this.mContext.getContentResolver();
+                ContentResolver contentResolver = this.getApplicationContext().getContentResolver();
                 Settings.System.putString(contentResolver, Constant.BKPACKAGE_STRING, savepackage[0] + "," + savepackage[1] + "," + savepackage[2]);
             }
         }
         sendBootCheck(this.mContext, "poweroff");
     }
 
-    private void PowerOffAction() {
+    private void powerOffAction() {
         startHome();
         if (this.mMfi.equals("2") || (this.mGtPlatform && (this.mMfi.equals("1") || this.mMfi.equals("2")))) {
             if ("1".equals(this.mCarPlayType)) {
                 SystemProperties.set(AppManager.packageNameCARPLAY[0], "disable");
                 Intent it = new Intent(AppManager.packageNameCARPLAY[0]);
                 it.putExtra("command", "ACTION_EXIT");
-                this.mContext.sendBroadcastAsUser(it, UserHandle.CURRENT_OR_SELF);
+                this.getApplicationContext().sendBroadcastAsUser(it, UserHandle.CURRENT_OR_SELF);
                 it.setPackage(AppManager.packageNameCARPLAY[0]);
-                this.mContext.sendBroadcastAsUser(it, UserHandle.CURRENT_OR_SELF);
+                this.getApplicationContext().sendBroadcastAsUser(it, UserHandle.CURRENT_OR_SELF);
             } else if ("2".equals(this.mCarPlayType)) {
                 SystemProperties.set(AppManager.packageNameCARPLAY[1], "disable");
                 Intent it2 = new Intent(AppManager.packageNameCARPLAY[1]);
                 it2.putExtra("command", "ACTION_EXIT");
-                this.mContext.sendBroadcastAsUser(it2, UserHandle.CURRENT_OR_SELF);
+                this.getApplicationContext().sendBroadcastAsUser(it2, UserHandle.CURRENT_OR_SELF);
                 it2.setPackage(AppManager.packageNameCARPLAY[1]);
-                this.mContext.sendBroadcastAsUser(it2, UserHandle.CURRENT_OR_SELF);
+                this.getApplicationContext().sendBroadcastAsUser(it2, UserHandle.CURRENT_OR_SELF);
             }
         }
-        this.mContext.sendBroadcastAsUser(new Intent("android.intent.action.SYNC"), UserHandle.CURRENT_OR_SELF);
-        this.mAppMode = -1;
-        if (this.mCustomerSub.equals("HZC4")) {
+        this.getApplicationContext().sendBroadcastAsUser(new Intent("android.intent.action.SYNC"), UserHandle.CURRENT_OR_SELF);
+        this.appMode = -1;
+        if (this.customerSub.equals("HZC4")) {
             setParameters("rpt_power=wait");
-            ReportEvent("power", this.mPowerState);
+            reportEvent("power", this.powerState);
         } else {
             new Thread(new Runnable() { // from class: android.microntek.service.MicrontekServer.12
                 @Override // java.lang.Runnable
                 public void run() {
-                    ClearProcess.getInstance(MicrontekServer.this.mContext).clearManage(0, null);
+                    ClearProcess.getInstance(mContext).clearManage(0, null);
                 }
             }).start();
             setParameters("rpt_power=false");
         }
-        this.mHandler.sendEmptyMessageDelayed(8, 2000L);
+        this.handler.sendEmptyMessageDelayed(8, 2000L);
     }
 
     private void SendTouchUpdate(List<String> list) {
@@ -2063,43 +2033,39 @@ public class MicrontekServer extends MicrontekServiceBase {
             sBuf.append(path.substring(path.lastIndexOf("/") + 1, path.length()));
             sBuf.append("\r\n");
         }
-        sBuf.append("------" + this.mTouchCount + "----");
+        sBuf.append("------" + this.touchCount + "----");
         File file = new File(path);
         if (file.isFile() && file.exists()) {
             showToastMsg(sBuf.toString(), 0);
-            int i2 = this.mTouchCount;
+            int i2 = this.touchCount;
             if (i2 <= 0) {
-                this.mHandler.removeMessages(6);
+                this.handler.removeMessages(6);
                 TouchUpdateAsyncTask updateTextTask = new TouchUpdateAsyncTask(this, list);
                 updateTextTask.execute(new Void[0]);
                 return;
             }
-            this.mTouchCount = i2 - 1;
-            this.mHandler.removeMessages(6);
-            Message msg1 = this.mHandler.obtainMessage();
+            this.touchCount = i2 - 1;
+            this.handler.removeMessages(6);
+            Message msg1 = this.handler.obtainMessage();
             msg1.what = 6;
             msg1.obj = list;
-            this.mHandler.sendMessageDelayed(msg1, 1000L);
+            this.handler.sendMessageDelayed(msg1, 1000L);
         }
     }
 
     private void checkTouchUpdate(String path) {
-        List<String> mList = new ArrayList<>();
-        for (int i = 0; i < Constant.updateCfgFileName.length; i++) {
-            String pathNeme = path + File.separator + Constant.updateCfgFileName[i];
-            File file = new File(pathNeme);
-            if (file.isFile() && file.exists()) {
-                mList.add(pathNeme);
-            }
-        }
-        int i2 = mList.size();
-        if (i2 > 0) {
-            this.mTouchCount = 7;
-            this.mHandler.removeMessages(6);
-            Message msg = this.mHandler.obtainMessage();
-            msg.what = 6;
-            msg.obj = mList;
-            this.mHandler.sendMessageDelayed(msg, 1500L);
+        List<String> updateFilePaths = Arrays.stream(Constant.updateCfgFileName)
+            .map(fileName -> path + File.separator + fileName).filter(pathName -> {
+                File file = new File(pathName);
+                return file.isFile() && file.exists();
+            }).collect(Collectors.toList());
+        if (!updateFilePaths.isEmpty()) {
+            touchCount = 7;
+            handler.removeMessages(MSG_TOUCH_UPDATE);
+            Message msg = handler.obtainMessage();
+            msg.what = MSG_TOUCH_UPDATE;
+            msg.obj = updateFilePaths;
+            handler.sendMessageDelayed(msg, 1_500L);
         }
     }
 
@@ -2108,26 +2074,26 @@ public class MicrontekServer extends MicrontekServiceBase {
         if (!TextUtils.isEmpty(result)) {
             try {
                 showToastMsg(result, 0);
-                String[] token = result.split("\n");
+                String[] token = Objects.requireNonNull(result).split("\n");
                 for (String str : token) {
                     String line = str.trim();
                     if (!TextUtils.isEmpty(line)) {
                         if (line.startsWith("screen:") && line.length() > 7) {
-                            int par = Integer.parseInt(line.substring(7, line.length()));
+                            int par = Integer.parseInt(line.substring(7));
                             if (par >= 0 && par <= 63) {
                                 setParameters("ctl_tmode=" + (par + 500));
                             } else if (par >= 64 && par <= 127) {
                                 setParameters("ctl_tmode=" + (par + 536));
                             }
                         } else if (line.startsWith("backlight:") && line.length() > 10) {
-                            int par2 = Integer.parseInt(line.substring(10, line.length()));
-                            setParameters("ctl_tmode=" + (par2 + 700));
+                            int par = Integer.parseInt(line.substring(10));
+                            setParameters("ctl_tmode=" + (par + 700));
                         }
-                        Log.i("MicrontekServer", "updateDmcuExtCfg:" + line);
+                        Log.i(TAG, "updateDmcuExtCfg:" + line);
                     }
                 }
             } catch (Exception e) {
-                Log.i("MicrontekServer", "updateDmcuExtCfgException" + e.getMessage());
+                Log.i(TAG, "updateDmcuExtCfgException" + e.getMessage());
             }
         }
     }
@@ -2139,14 +2105,14 @@ public class MicrontekServer extends MicrontekServiceBase {
                 showToastMsg(result, 0);
                 String from = null;
                 String dest = null;
-                String[] token = result.split("\n");
+                String[] token = Objects.requireNonNull(result).split("\n");
                 for (String str : token) {
                     String line = str.trim();
                     if (!TextUtils.isEmpty(line)) {
                         if (line.startsWith("copy:") && line.contains(",")) {
-                            line = line.substring(line.indexOf(":") + 1, line.length());
+                            line = line.substring(line.indexOf(":") + 1);
                             from = line.substring(0, line.indexOf(","));
-                            dest = line.substring(line.indexOf(",") + 1, line.length());
+                            dest = line.substring(line.indexOf(",") + 1);
                             if (TextUtils.isEmpty(dest)) {
                                 dest = "/";
                             }
@@ -2154,38 +2120,34 @@ public class MicrontekServer extends MicrontekServiceBase {
                                 dest = "/" + dest;
                             }
                         }
-                        Log.i("MicrontekServer", "updateHctExtCfg:" + line);
+                        Log.i(TAG, "updateHctExtCfg:" + line);
                     }
                 }
                 if (!TextUtils.isEmpty(from) && !TextUtils.isEmpty(dest)) {
                     copyFile(path + "/" + from, "sdcard" + dest);
                 }
             } catch (Exception e) {
-                Log.i("MicrontekServer", "updateHctExtCfgException" + e.getMessage());
+                Log.i(TAG, "updateHctExtCfgException" + e.getMessage());
             }
         }
     }
 
     private void saveCustomerLogo(String path) {
-        int h;
-        Matrix matrix;
         if (!"false".equals(SystemProperties.get("ro.product.wipe.data", ""))) {
             return;
         }
         String pathName = path + File.separator + "customer.png";
         if (new File(pathName).exists()) {
-            Log.i("MicrontekServer", "SaveLogo:" + pathName);
+            Log.i(TAG, "SaveLogo:" + pathName);
             DisplayMetrics dm = getResources().getDisplayMetrics();
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inJustDecodeBounds = true;
             BitmapFactory.decodeFile(pathName, options);
             int scale = 1;
-            int dest_w = dm.widthPixels;
-            int dest_h = dm.heightPixels;
-            while (true) {
-                if ((options.outWidth / scale) / 2 <= dest_w && (options.outHeight / scale) / 2 <= dest_h) {
-                    break;
-                }
+            int destWidth = dm.widthPixels;
+            int destHeight = dm.heightPixels;
+            while ((options.outWidth / scale) / 2 > destWidth
+                || (options.outHeight / scale) / 2 > destHeight) {
                 scale *= 2;
             }
             BitmapFactory.Options options2 = new BitmapFactory.Options();
@@ -2194,59 +2156,52 @@ public class MicrontekServer extends MicrontekServiceBase {
             options2.inInputShareable = true;
             Bitmap bt = BitmapFactory.decodeFile(pathName, options2);
             int w = options2.outWidth;
-            int h2 = options2.outHeight;
-            float scaleWidth = dest_w / w;
-            float scaleHeight = dest_h / h2;
-            Matrix matrix2 = new Matrix();
+            int h = options2.outHeight;
+            float scaleWidth = (float) destWidth / w;
+            float scaleHeight = (float) destHeight / h;
+            Matrix matrix = new Matrix();
             if (scaleWidth < scaleHeight) {
-                h = h2;
-                matrix = matrix2;
                 matrix.postScale(scaleWidth, scaleWidth);
             } else {
-                h = h2;
-                matrix = matrix2;
                 matrix.postScale(scaleHeight, scaleHeight);
             }
             Bitmap bitmap = Bitmap.createBitmap(bt, 0, 0, w, h, matrix, false);
-            File dirFile = new File(this.logoDirPath);
+            File dirFile = new File(logoDirPath);
             if (dirFile.mkdirs()) {
-                Log.i("MicrontekServer", "creat dirFile");
+                Log.i(TAG, "creat dirFile");
             } else {
-                Log.i("MicrontekServer", "creat dirFile fail!");
+                Log.i(TAG, "creat dirFile fail!");
             }
             try {
-                Runtime.getRuntime().exec("chmod 777 " + this.customerLogoPath);
-                File bitmapFile = new File(this.customerLogoPath);
+                Runtime.getRuntime().exec("chmod 777 " + customerLogoPath);
+                File bitmapFile = new File(customerLogoPath);
                 try {
                     bitmapFile.createNewFile();
-                    try {
-                        FileOutputStream bitmapWtriter = new FileOutputStream(bitmapFile);
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 99, bitmapWtriter);
+                    try (FileOutputStream bitmapWriter = new FileOutputStream(bitmapFile)) {
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 99, bitmapWriter);
                         try {
-                            bitmapWtriter.flush();
-                            bitmapWtriter.getFD().sync();
-                            bitmapWtriter.close();
-                            Runtime.getRuntime().exec("chmod 777 " + this.customerLogoPath);
-                            Toast.makeText(this.mContext, "Save Logo OK!", 0).show();
+                            bitmapWriter.flush();
+                            bitmapWriter.getFD().sync();
+                            bitmapWriter.close();
+                            Runtime.getRuntime().exec("chmod 777 " + customerLogoPath);
+                            Toast.makeText(getApplicationContext(), "Save Logo OK!", Toast.LENGTH_SHORT).show();
                         } catch (IOException e) {
-                            Log.i("MicrontekServer", "save fail!");
-                            e.printStackTrace();
+                            Log.e(TAG, "save fail!", e);
                         }
-                    } catch (FileNotFoundException e2) {
-                        Log.i("MicrontekServer", "FileOutputStream fail!");
-                        e2.printStackTrace();
+                    } catch (FileNotFoundException e) {
+                        Log.e(TAG, "FileOutputStream fail!", e);
                     }
-                } catch (IOException e3) {
-                    Log.i("MicrontekServer", "createNewFile fail!  >>> " + e3.toString());
+                } catch (IOException e) {
+                    Log.e(TAG, "createNewFile fail!  >>> ", e);
                 }
-            } catch (Exception e4) {
-                Log.i("MicrontekServer", "chmod 777 " + this.customerLogoPath + " fail!");
+            } catch (Exception e) {
+                Log.e(TAG, "chmod 777 " + customerLogoPath + " fail!");
             }
         }
     }
 
     private void copyFile(String from, String dest) {
-        AlertDialog alertDialog = this.mCopyDialog;
+        AlertDialog alertDialog = copyDialog;
         if (alertDialog != null && alertDialog.isShowing()) {
             return;
         }
@@ -2254,14 +2209,14 @@ public class MicrontekServer extends MicrontekServiceBase {
             showToastMsg(from + " no exists !!!!", 0);
             return;
         }
-        Log.i("MicrontekServer", "copy from:" + from + "  dest:" + dest);
+        Log.i(TAG, "copy from:" + from + "  dest:" + dest);
         SystemProperties.set("sys.hct.copy.path.from", from);
         SystemProperties.set("sys.hct.copy.path.dest", dest);
         SystemProperties.set("sys.hct.copy.result", "");
         SystemProperties.set("service.hctcopy.start", "true");
-        this.msg_index = 0;
-        this.mHandler.removeMessages(24);
-        this.mHandler.sendEmptyMessageDelayed(24, 100L);
+        msgIndex = 0;
+        this.handler.removeMessages(24);
+        this.handler.sendEmptyMessageDelayed(24, 100L);
         AlertDialog.Builder builder = new AlertDialog.Builder(this.mContext);
         builder.setTitle("Copy");
         builder.setMessage("Copy.....");
@@ -2274,9 +2229,9 @@ public class MicrontekServer extends MicrontekServiceBase {
             }
         });
         AlertDialog create = builder.create();
-        this.mCopyDialog = create;
+        copyDialog = create;
         create.getWindow().setType(2003);
-        this.mCopyDialog.show();
+        copyDialog.show();
     }
 
     private boolean checkSystemMcuAutoUpdate(String path) {
@@ -2285,11 +2240,10 @@ public class MicrontekServer extends MicrontekServiceBase {
         if ((currentTimeMillis - this.initialTime) / 1000 < 10) {
             return false;
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append(path);
-        sb.append(File.separator);
-        sb.append(this.isCarBox ? "box.auto" : "hct.auto");
-        File file = new File(sb.toString());
+        String filePath = path +
+                File.separator +
+                (this.isCarBox ? "box.auto" : "hct.auto");
+        File file = new File(filePath);
         if (file.isFile() && file.exists()) {
             Intent serviceIntent = new Intent();
             File file2 = new File(path + File.separator + "update.zip");
@@ -2304,8 +2258,11 @@ public class MicrontekServer extends MicrontekServiceBase {
             File gmcuFile = new File(path + File.separator + "gmcu.img");
             File hmcuFile = new File(path + File.separator + "hmcu.img");
             File imcuFile = new File(path + File.separator + "imcu.img");
-            File file3 = new File(path + File.separator + "dmcu.img");
-            if ((file3.isFile() && file3.exists()) || ((gmcuFile.isFile() && gmcuFile.exists()) || ((hmcuFile.isFile() && hmcuFile.exists()) || (imcuFile.isFile() && imcuFile.exists())))) {
+            File dmcuFile = new File(path + File.separator + "dmcu.img");
+            if ((dmcuFile.isFile() && dmcuFile.exists()) ||
+                    ((gmcuFile.isFile() && gmcuFile.exists()) ||
+                            ((hmcuFile.isFile() && hmcuFile.exists()) ||
+                                    (imcuFile.isFile() && imcuFile.exists())))) {
                 Intent serviceIntent2 = new Intent();
                 serviceIntent2.setComponent(new ComponentName(Constant.SETTINGSPACKAGE, "com.android.settings.hct.McuUpdate"));
                 serviceIntent2.putExtra("command", 1);
@@ -2386,7 +2343,7 @@ public class MicrontekServer extends MicrontekServiceBase {
         if (this.isInstallClear && this.mCurInstallApk >= this.mApkFileNames.length - 1) {
             SystemProperties.set("sys.hct.install.clear", "true");
         }
-        new InstallUtil(this, path, this.mHandler);
+        new InstallUtil(this, path, this.handler);
         AlertDialog alertDialog = this.mApkDialog;
         if (alertDialog != null && alertDialog.isShowing()) {
             this.mApkDialog.dismiss();
@@ -2414,16 +2371,16 @@ public class MicrontekServer extends MicrontekServiceBase {
         this.mApkDialog.show();
     }
 
-    private boolean focusRequest() {
-        this.mAudioManager.requestAudioFocus(this.mAudioFocusListener, 3, 2);
-        return 1 == this.mAudioManager.requestAudioFocus(this.mAudioFocusListener, 3, 1);
+    private void focusRequest() {
+        audioManager.requestAudioFocus(audioFocusListener, AudioManager.STREAM_MUSIC, 2);
+        audioManager.requestAudioFocus(audioFocusListener, AudioManager.STREAM_MUSIC, 1);
     }
 
     private void saveCarBoxData(String packageName) {
-        if (this.mPowerState == 2 && this.isBoxStartApp) {
+        if (this.powerState == 2 && this.isBoxStartApp) {
             String[] savepackage = new String[3];
             int i = 0;
-            if (HctUtil.CheckIsRun(this.mContext, Constant.RECPACKAGE)) {
+            if (HctUtil.isAppRunning(this.mContext, Constant.RECPACKAGE)) {
                 int i2 = 0 + 1;
                 savepackage[0] = Constant.RECPACKAGE;
                 i = i2;
@@ -2434,58 +2391,58 @@ public class MicrontekServer extends MicrontekServiceBase {
                     int i3 = i + 1;
                     savepackage[i] = packageName;
                     String className = HctUtil.getTopActivityClassName(this.mContext);
-                    Settings.System.putString(this.mContext.getContentResolver(), Constant.ZLINKCLASS_STRING, className);
+                    Settings.System.putString(this.getApplicationContext().getContentResolver(), Constant.ZLINKCLASS_STRING, className);
                 } else if (!checkPKFilter(packageName) && !packageName.startsWith("com.android.launcher")) {
                     int i4 = i + 1;
                     savepackage[i] = packageName;
                 }
             } else {
-                if (mtcpackagename.equals(Constant.BTPACKAGE) && HctUtil.CheckIsRun(this.mContext, Constant.BTMUSICPACKAGE)) {
+                if (mtcpackagename.equals(Constant.BTPACKAGE) && HctUtil.isAppRunning(this.mContext, Constant.BTMUSICPACKAGE)) {
                     mtcpackagename = Constant.BTMUSICPACKAGE;
                 }
                 int i5 = i + 1;
                 savepackage[i] = mtcpackagename;
-                if (gps_isfront && gps_open) {
+                if (gpsIsFront && gpsOpen) {
                     int i6 = i5 + 1;
                     savepackage[i5] = GPSPKNAME;
                 }
             }
-            ContentResolver contentResolver = this.mContext.getContentResolver();
+            ContentResolver contentResolver = this.getApplicationContext().getContentResolver();
             Settings.System.putString(contentResolver, Constant.BKPACKAGE_STRING, savepackage[0] + "," + savepackage[1] + "," + savepackage[2]);
         }
     }
 
-    private void updataPowerScreen(boolean is) {
-        this.isPowerScreen = this.mCarManager.getBooleanState("power_screen");
+    private void updatePowerScreen(boolean is) {
+        this.isPowerScreen = this.carManager.getBooleanState("power_screen");
         if (this.isPowerScreenLast != this.isPowerScreen || is) {
             if (this.isPowerScreen) {
-                Log.i("MicrontekServer", "-----Enter Power Screen!");
-                if (!is && !this.mHandler.hasMessages(MSG_PWR_SCREEN)) {
+                Log.i(TAG, "-----Enter Power Screen!");
+                if (!is && !this.handler.hasMessages(MSG_PWR_SCREEN)) {
                     savePoweroffData();
                 }
-                this.mHandler.removeMessages(MSG_PWR_SCREEN);
-                if (!this.mBackviewState) {
+                this.handler.removeMessages(MSG_PWR_SCREEN);
+                if (!this.backviewState) {
                     if (this.isPowerScreenLast != this.isPowerScreen && !SystemProperties.get("sys.ship.package", "").contains("com.android.launcher")) {
                         startHome();
                     }
-                    this.ScreenSaverTimer = this.ScreenSaverTimeOut;
+                    this.screensaverTimer = this.screensaverTimeout;
                     startMusicClock();
                 }
             } else {
                 clearMusicClock();
                 sendBroadcastAsUser(new Intent(Constant.CLOCKEND), UserHandle.CURRENT_OR_SELF);
-                this.mHandler.removeMessages(MSG_PWR_SCREEN);
-                this.mHandler.sendEmptyMessageDelayed(MSG_PWR_SCREEN, 1000L);
+                this.handler.removeMessages(MSG_PWR_SCREEN);
+                this.handler.sendEmptyMessageDelayed(MSG_PWR_SCREEN, 1000L);
             }
             this.isPowerScreenLast = this.isPowerScreen;
         }
     }
 
     private void powerReboot() {
-        this.mHandler.removeCallbacks(this.PowerLongPress);
-        this.mHandler.post(this.PowerLongPress);
-        this.mHandler.removeCallbacks(this.PowerRebootRunnable);
-        this.mHandler.postDelayed(this.PowerRebootRunnable, 3000L);
+        this.handler.removeCallbacks(this.PowerLongPress);
+        this.handler.post(this.PowerLongPress);
+        this.handler.removeCallbacks(this.PowerRebootRunnable);
+        this.handler.postDelayed(this.PowerRebootRunnable, 3000L);
     }
 
     private void UpdataOrientation(boolean flag) {
@@ -2519,12 +2476,12 @@ public class MicrontekServer extends MicrontekServiceBase {
                 }
             }
             if ("0".equals(SystemProperties.get("ro.product.rotatemode"))) {
-                if (this.launcherflag || "com.android.launcher".equals(HctUtil.getTopActivityPackageName(this.mContext)) || "com.android.launcher2p".equals(HctUtil.getTopActivityPackageName(this.mContext)) || "com.android.launcher3".equals(HctUtil.getTopActivityPackageName(this.mContext)) || "com.android.launcher3p".equals(HctUtil.getTopActivityPackageName(this.mContext)) || !flag) {
+                if (this.launcherFlag || "com.android.launcher".equals(HctUtil.getTopActivityPackageName(this.mContext)) || "com.android.launcher2p".equals(HctUtil.getTopActivityPackageName(this.mContext)) || "com.android.launcher3".equals(HctUtil.getTopActivityPackageName(this.mContext)) || "com.android.launcher3p".equals(HctUtil.getTopActivityPackageName(this.mContext)) || !flag) {
                     startDefaultLanuncher(flag);
                 }
                 if (flag) {
-                    this.mHandler.removeMessages(13);
-                    this.mHandler.sendEmptyMessageDelayed(13, 0L);
+                    this.handler.removeMessages(13);
+                    this.handler.sendEmptyMessageDelayed(13, 0L);
                 }
                 this.updateLauncher = true;
             }
@@ -2603,25 +2560,22 @@ public class MicrontekServer extends MicrontekServiceBase {
 
     private void startExtShow() {
         ActivityOptions options = ActivityOptions.makeBasic();
-        MediaRouter mediaRouter = (MediaRouter) getSystemService("media_router");
-        MediaRouter.RouteInfo route = mediaRouter.getSelectedRoute(2);
+        MediaRouter mediaRouter = (MediaRouter) getSystemService(Context.MEDIA_ROUTER_SERVICE);
+        MediaRouter.RouteInfo route = mediaRouter.getSelectedRoute(MediaRouter.ROUTE_TYPE_LIVE_VIDEO);
         if (route != null) {
             Display presentationDisplay = route.getPresentationDisplay();
-            try {
-                options.setLaunchDisplayId(presentationDisplay.getDisplayId());
-                Intent intent = new Intent("android.intent.action.MAIN");
-                intent.setComponent(new ComponentName("com.microntek.externshow", "com.microntek.externshow.MainActivity"));
-                intent.addFlags(268435456);
-                startActivity(intent, options.toBundle());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            options.setLaunchDisplayId(presentationDisplay.getDisplayId());
+            Intent intent = new Intent("android.intent.action.MAIN");
+            intent.setComponent(new ComponentName("com.microntek.externshow", "com.microntek.externshow.MainActivity"));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent, options.toBundle());
         }
     }
 
     private void sendKeyCode(int code) {
         Intent intent = new Intent(Constant.MSG_MTC_IRKEY_DOWN);
         intent.putExtra(Constant.KEY_CODE, code);
-        this.mContext.sendBroadcast(intent);
+        getApplicationContext().sendBroadcast(intent);
     }
+
 }
