@@ -54,7 +54,6 @@
 
 
     <application
-        android:name="ServerApplication"
         android:allowBackup="true"
         android:directBootAware="true"
         android:exported="true"
