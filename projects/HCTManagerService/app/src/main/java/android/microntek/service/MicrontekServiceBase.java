@@ -72,8 +72,6 @@ public class MicrontekServiceBase extends Service implements VolumeInterface {
     protected static final String HCT_CARMANAGER_EVENT = "com.microntek.CarManager.event";
     protected static final String HCT_REPORT_EVENT = "com.microntek.report.event";
     protected static final String HCT_REQUEST_EVENT = "com.microntek.request.event";
-    private static final String MNT_PATH = "/mnt/media_rw";
-    private static final String MNT_REGEX = "^/mnt/media_rw";
     private static final String MODE_CHANGING_ACTION = "com.android.settings.location.MODE_CHANGING";
     protected static final String MSG_LAUNCHER2P_CLS = "com.android.launcher2p2.Launcher";
     protected static final String MSG_LAUNCHER2P_PKG = "com.android.launcher2p";
@@ -89,8 +87,6 @@ public class MicrontekServiceBase extends Service implements VolumeInterface {
     public static final int POWER_STA_OFF = 1;
     public static final int POWER_STA_ON = 2;
     public static final String REPORT_EVENT = "com.microntek.report.event";
-    private static final String STORAGE_PATH = "/storage";
-    private static final String STORAGE_REGEX = "^/storage";
     protected static final String TAG = "MicrontekServer";
     public static final String TYPE = "type";
     private static final String UPDATEACCDELAYMODE = "updateAccDelayMode";
@@ -3009,17 +3005,4 @@ public class MicrontekServiceBase extends Service implements VolumeInterface {
         }
     }
 
-    protected String convertStorageToMnt(String path) {
-        if (Build.VERSION.SDK_INT >= 30) {
-            return path;
-        }
-        return path.replaceFirst(STORAGE_REGEX, MNT_PATH);
-    }
-
-    protected String convertMntToStorage(String path) {
-        if (Build.VERSION.SDK_INT >= 30) {
-            return path;
-        }
-        return path.replaceFirst(MNT_REGEX, STORAGE_PATH);
-    }
 }
