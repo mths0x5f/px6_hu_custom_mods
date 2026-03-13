@@ -2766,42 +2766,6 @@ public class MicrontekServiceBase extends Service implements VolumeInterface {
         }
     }
 
-    protected void showYHLogoView(boolean visable) {
-        if (visable) {
-            if (this.mWindowManager == null) {
-                this.mWindowManager = (WindowManager) getApplication().getSystemService("window");
-            }
-            if (this.mYHLogoLayout == null) {
-                LayoutInflater inflater = LayoutInflater.from(getApplication());
-                View inflate = inflater.inflate(R.layout.yh_logo, (ViewGroup) null);
-                this.mYHLogoLayout = inflate;
-                ImageView imageView = (ImageView) inflate.findViewById(R.id.yh_defaultlogo);
-                if ("false".equals(SystemProperties.get("ro.product.wipe.data", ""))) {
-                    this.addView = EnLog;
-                }
-                WindowManager.LayoutParams wmParams = new WindowManager.LayoutParams();
-                wmParams.width = -1;
-                wmParams.height = -1;
-                wmParams.type = 2006;
-                wmParams.flags = 1280;
-                wmParams.systemUiVisibility = 4102;
-                if (this.addView) {
-                    this.mWindowManager.addView(this.mYHLogoLayout, wmParams);
-                }
-                this.mYHLogoLayout.measure(View.MeasureSpec.makeMeasureSpec(0, 0), View.MeasureSpec.makeMeasureSpec(0, 0));
-                return;
-            }
-            return;
-        }
-        View view = this.mYHLogoLayout;
-        if (view != null) {
-            if (this.addView) {
-                this.mWindowManager.removeView(view);
-            }
-            this.mYHLogoLayout = null;
-        }
-    }
-
     public Bitmap getLocalBitmap(File file) {
         if (!file.exists()) {
             return null;
