@@ -1330,13 +1330,6 @@ public class MicrontekServer extends MicrontekServiceBase {
             }
         } else if ("overheat".equals(type)) {
             showFloatView(true);
-        } else if ("unmatch".equals(type)) {
-            byte[] b = bundle.getByteArray(MicrontekServiceBase.VALUE);
-            try {
-                String unmatch = new String(b, "gb2312").trim();
-                showUnMatch(unmatch);
-            } catch (Exception e) {
-            }
         } else if ("screen_onoff".equals(type)) {
             reportEvent(type, bundle.getBoolean(MicrontekServiceBase.VALUE));
         } else if ("car_info".equals(type)) {

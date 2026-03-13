@@ -101,7 +101,6 @@ public class MicrontekServiceBase extends Service implements VolumeInterface {
     protected AccDelayObserver mAccDelayObserver;
     protected AudioManager mAudioManager;
     private LinearLayout mBackLayout;
-    private View mBoxFloatUnMatchLayout;
     private WindowManager mBoxWindowManager;
     protected ConnectivityManager mConnectivityManager;
     protected Context mContext;
@@ -109,7 +108,6 @@ public class MicrontekServiceBase extends Service implements VolumeInterface {
     protected String mCustomerSub;
     protected int mDualHomeMode;
     private View mFloatLayout;
-    private LinearLayout mFloatUnMatchLayout;
     protected String mMcuVersion;
     protected RightViewObserver mRightViewObserver;
     protected SettingsObserver mSettingsObserver;
@@ -2777,77 +2775,6 @@ public class MicrontekServiceBase extends Service implements VolumeInterface {
             e.printStackTrace();
             return null;
         }
-    }
-
-    protected void showUnMatch(String msg) {
-        if (this.mWindowManager == null) {
-            Application application = getApplication();
-            getApplication();
-            this.mWindowManager = (WindowManager) application.getSystemService("window");
-        }
-        LinearLayout linearLayout = this.mFloatUnMatchLayout;
-        if (linearLayout == null) {
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-            LinearLayout linearLayout2 = new LinearLayout(this);
-            this.mFloatUnMatchLayout = linearLayout2;
-            linearLayout2.setLayoutParams(lp);
-            this.mFloatUnMatchLayout.setBackgroundColor(Integer.MIN_VALUE);
-            this.mFloatUnMatchLayout.setOrientation(0);
-            ViewGroup.LayoutParams vlp = new ViewGroup.LayoutParams(-2, -2);
-            TextView tv1 = new TextView(this);
-            tv1.setLayoutParams(vlp);
-            tv1.setText(msg);
-            tv1.setTextColor(-65536);
-            this.mFloatUnMatchLayout.addView(tv1);
-            tv1.setTag("unmatch");
-            WindowManager.LayoutParams wmParams = new WindowManager.LayoutParams();
-            wmParams.type = 2007;
-            wmParams.format = 1;
-            wmParams.flags = 56;
-            wmParams.gravity = 81;
-            wmParams.x = 0;
-            wmParams.y = 0;
-            wmParams.width = -2;
-            wmParams.height = -2;
-            this.mWindowManager.addView(this.mFloatUnMatchLayout, wmParams);
-        } else {
-            TextView tv12 = (TextView) linearLayout.findViewWithTag("unmatch");
-            if (tv12 != null) {
-                tv12.setText(msg);
-            }
-        }
-        this.mFloatUnMatchLayout.measure(View.MeasureSpec.makeMeasureSpec(0, 0), View.MeasureSpec.makeMeasureSpec(0, 0));
-    }
-
-    protected void checkBoxUnMatch() {
-        String androidCid = SystemProperties.get("ro.product.android.cid", "0");
-        if (TextUtils.isEmpty(androidCid) || "0".equals(androidCid) || TextUtils.isEmpty(getCustomerMcuID()) || getCustomerMcuID().equals(androidCid)) {
-            return;
-        }
-        if (this.mBoxWindowManager == null) {
-            Application application = getApplication();
-            getApplication();
-            this.mBoxWindowManager = (WindowManager) application.getSystemService("window");
-        }
-        if (this.mBoxFloatUnMatchLayout == null) {
-            LayoutInflater inflater = LayoutInflater.from(getApplication());
-            this.mBoxFloatUnMatchLayout = inflater.inflate(R.layout.unmath_layout, (ViewGroup) null);
-            WindowManager.LayoutParams wmParams = new WindowManager.LayoutParams();
-            wmParams.type = 2010;
-            wmParams.format = 1;
-            wmParams.flags = 1336;
-            wmParams.gravity = 81;
-            wmParams.x = 0;
-            wmParams.y = 0;
-            TextView tv1 = (TextView) this.mBoxFloatUnMatchLayout.findViewById(R.id.unmatch);
-            if (tv1 != null) {
-                tv1.setText(getCustomerMcuID() + " " + androidCid);
-            }
-            wmParams.width = -1;
-            wmParams.height = -1;
-            this.mBoxWindowManager.addView(this.mBoxFloatUnMatchLayout, wmParams);
-        }
-        this.mBoxFloatUnMatchLayout.measure(View.MeasureSpec.makeMeasureSpec(0, 0), View.MeasureSpec.makeMeasureSpec(0, 0));
     }
 
     protected String getCustomerMcuID() {
