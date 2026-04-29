@@ -63,6 +63,7 @@
         android:process="system"
         android:requiredForAllUsers="true"
         android:usesNonSdkApi="true">
+        <!-- Receivers -->
         <receiver
             android:name=".MicrontekReceiver"
             android:exported="true">
