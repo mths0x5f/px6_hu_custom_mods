@@ -25,7 +25,7 @@ public class LocaleChangeReceiver extends BaseReceiver<LocaleChangeReceiver.Loca
     public void onReceive(Context context, Intent intent) {
         LocaleChangeListener listener = getListener();
         String action = intent.getAction();
-        if (action.equals(Intent.ACTION_LOCALE_CHANGED)) {
+        if (Intent.ACTION_LOCALE_CHANGED.equals(action)) {
             listener.onLocaleChanged();
         }
     }

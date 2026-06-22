@@ -28,7 +28,7 @@ public class ScreenClockReceiver extends BaseReceiver<ScreenClockReceiver.Screen
     public void onReceive(Context context, Intent intent) {
         ScreenClockListener listener = getListener();
         String action = intent.getAction();
-        if (action.equals(ACTION_CHANGE_SCREEN_CLOCK)) {
+        if (ACTION_CHANGE_SCREEN_CLOCK.equals(action)) {
             boolean value = intent.getIntExtra(EXTRA_MY_SCREEN_CLOCK, 0) == 1;
             listener.onScreenClockChange(value);
         }
