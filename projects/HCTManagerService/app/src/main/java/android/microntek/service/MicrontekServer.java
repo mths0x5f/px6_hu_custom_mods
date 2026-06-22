@@ -478,27 +478,6 @@ public class MicrontekServer extends MicrontekServiceBase {
     private int msgIndex = 0;
     private AlertDialog copyDialog;
 
-    private final PhoneStateListener phoneListener = new PhoneStateListener() {
-        @Override
-        public void onCallStateChanged(int state, String incomingNumber) {
-            super.onCallStateChanged(state, incomingNumber);
-            if (state == TelephonyManager.CALL_STATE_IDLE) {
-                setParameters("av_phone_sim=hangup");
-                simPhoneLock = false;
-                MTCAdjVolume(2);
-            } else if (state != TelephonyManager.CALL_STATE_RINGING) {
-                if (state == TelephonyManager.CALL_STATE_OFFHOOK) {
-                    setParameters("av_phone_sim=answer");
-                    simPhoneLock = true;
-                    MTCAdjVolume(2);
-                }
-            } else {
-                setParameters("av_phone_sim=in");
-                simPhoneLock = true;
-                MTCAdjVolume(2);
-            }
-        }
-    };
 
     private final BroadcastReceiver phoneReceiver = new BroadcastReceiver() {
         @Override
